@@ -1,1010 +1,2677 @@
 <!doctype html>
 
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#141516">
     <title>Cloud Explorer</title>
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234c8dff'/%3E%3Cpath d='M44 46H24a11 11 0 1 1 10.5-14.2H44a7.1 7.1 0 1 1 0 14.2Z' fill='none' stroke='white' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <script>try { document.documentElement.dataset.theme = localStorage.getItem('ce.theme') || 'dark' } catch (e) { }</script>
     <style>
         * {
-            box-sizing: border-box
+            box-sizing: border-box;
+            margin: 0
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        :root {
+            --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            --r: 8px
+        }
+
+        [data-theme=dark] {
+            color-scheme: dark;
+            --bg: #141516;
+            --panel: #191a1c;
+            --card: #1b1c1f;
+            --card-h: #222326;
+            --thumb: #202124;
+            --line: #2b2d31;
+            --line2: #3b3e44;
+            --text: #e7e7e5;
+            --muted: #93959c;
+            --accent: #4c8dff;
+            --accent-soft: rgba(76, 141, 255, .15);
+            --danger: #ef6470;
+            --ok: #4cb782;
+            --folder: #d9a441;
+            --input: #1f2023;
+            --overlay: rgba(0, 0, 0, .62);
+            --shadow: 0 8px 28px rgba(0, 0, 0, .45)
+        }
+
+        [data-theme=light] {
+            color-scheme: light;
+            --bg: #f5f5f3;
+            --panel: #fbfbfa;
+            --card: #fff;
+            --card-h: #f0f0ed;
+            --thumb: #f1f1ee;
+            --line: #e1e1dc;
+            --line2: #cbcbc5;
+            --text: #1d1d1b;
+            --muted: #6b6b66;
+            --accent: #2f6fed;
+            --accent-soft: rgba(47, 111, 237, .1);
+            --danger: #d6364a;
+            --ok: #2a9d6a;
+            --folder: #c48a22;
+            --input: #f3f3f0;
+            --overlay: rgba(20, 20, 18, .45);
+            --shadow: 0 8px 28px rgba(30, 30, 25, .16)
         }
 
         body {
-            margin: 0;
-            font-family: Segoe UI, system-ui, sans-serif;
-            background: #0d0f14;
-            color: #e8ebf2;
-            height: 100vh;
-            overflow: hidden
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.45;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased
         }
 
         button,
-        input {
-            font: inherit
+        input,
+        select,
+        textarea {
+            font: inherit;
+            color: inherit
         }
 
         button {
-            cursor: pointer
+            cursor: pointer;
+            background: none;
+            border: 0
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 1px
         }
 
         .hidden {
             display: none !important
         }
 
-        :root {
-            --bg: #0d0f14;
-            --panel: #151820;
-            --panel2: #1b1f29;
-            --hover: #242a36;
-            --border: #2a303c;
-            --accent: #5865f2;
-            --text: #e8ebf2;
-            --muted: #8f97a8;
-            --danger: #d64b5b
+        .ic {
+            width: 18px;
+            height: 18px;
+            flex: none
         }
 
+        .muted {
+            color: var(--muted)
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--line2) transparent
+        }
+
+        @keyframes fade {
+            from {
+                opacity: 0
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes pulse {
+            50% {
+                opacity: .55
+            }
+        }
+
+        /* ---------- éléments communs ---------- */
+        .logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 7px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            flex: none;
+            background: var(--accent)
+        }
+
+        .logo .ic {
+            width: 18px;
+            height: 18px
+        }
+
+        .btn {
+            height: 36px;
+            padding: 0 14px;
+            border-radius: var(--r);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 500;
+            border: 1px solid var(--line2);
+            background: var(--card)
+        }
+
+        .btn:hover {
+            background: var(--card-h)
+        }
+
+        .btn.primary {
+            border-color: var(--accent);
+            color: #fff;
+            background: var(--accent)
+        }
+
+        .btn.primary:hover {
+            filter: brightness(1.1)
+        }
+
+        .btn.danger {
+            color: #fff;
+            border-color: var(--danger);
+            background: var(--danger)
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .btn.busy::after {
+            content: "";
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            animation: spin .7s linear infinite
+        }
+
+        .iconbtn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--r);
+            border: 1px solid var(--line);
+            background: var(--card);
+            display: grid;
+            place-items: center;
+            color: var(--muted);
+            flex: none
+        }
+
+        .iconbtn:hover {
+            color: var(--text);
+            background: var(--card-h)
+        }
+
+        .iconbtn.sm {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px
+        }
+
+        .iconbtn.sm .ic {
+            width: 15px;
+            height: 15px
+        }
+
+        .field {
+            width: 100%;
+            height: 38px;
+            padding: 0 12px;
+            border-radius: var(--r);
+            border: 1px solid var(--line2);
+            background: var(--input);
+            outline: 0
+        }
+
+        .field:focus {
+            border-color: var(--accent)
+        }
+
+        .lbl {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted)
+        }
+
+        kbd {
+            font: 500 11px var(--font);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid var(--line2);
+            color: var(--muted)
+        }
+
+        /* ---------- connexion ---------- */
+        .login {
+            min-height: 100%;
+            display: grid;
+            place-items: center;
+            padding: 24px
+        }
+
+        .login-card {
+            width: min(360px, 100%);
+            padding: 28px;
+            border-radius: 12px;
+            background: var(--panel);
+            border: 1px solid var(--line)
+        }
+
+        .login-card .logo {
+            margin-bottom: 18px
+        }
+
+        .login-card h1 {
+            font-size: 18px;
+            font-weight: 600
+        }
+
+        .login-card p {
+            margin: 4px 0 20px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .pw {
+            position: relative
+        }
+
+        .pw .field {
+            padding-right: 42px
+        }
+
+        .pw button {
+            position: absolute;
+            right: 3px;
+            top: 3px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: grid;
+            place-items: center;
+            color: var(--muted)
+        }
+
+        .pw button:hover {
+            color: var(--text)
+        }
+
+        .login-card .btn {
+            width: 100%;
+            height: 40px;
+            margin-top: 14px
+        }
+
+        .login-error {
+            min-height: 18px;
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--danger)
+        }
+
+        /* ---------- structure ---------- */
         .app {
             height: 100vh;
-            display: flex;
-            flex-direction: column
+            height: 100dvh;
+            display: grid;
+            grid-template-columns: 236px minmax(0, 1fr)
         }
 
-        .topbar {
-            height: 64px;
+        .sidebar {
             display: flex;
-            align-items: center;
-            padding: 0 18px;
-            border-bottom: 1px solid var(--border);
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px 12px;
+            border-right: 1px solid var(--line);
             background: var(--panel);
-            gap: 18px
+            z-index: 60
         }
 
         .brand {
-            font-size: 18px;
-            font-weight: 700;
-            white-space: nowrap
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 6px;
+            font-weight: 600;
+            font-size: 15px
         }
 
-        .brand span {
-            color: #7180ff
+        .new-btn {
+            height: 38px;
+            border-radius: var(--r);
+            color: #fff;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--accent)
+        }
+
+        .new-btn:hover {
+            filter: brightness(1.1)
+        }
+
+        .new-btn .ic {
+            width: 17px;
+            height: 17px
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 2px
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 6px;
+            color: var(--muted);
+            text-align: left
+        }
+
+        .nav-btn:hover {
+            background: var(--card-h);
+            color: var(--text)
+        }
+
+        .nav-btn.active {
+            color: var(--text);
+            background: var(--card-h);
+            font-weight: 600
+        }
+
+        .nav-btn.active .ic {
+            color: var(--accent)
+        }
+
+        .nav-btn.drop-on {
+            outline: 2px dashed var(--accent);
+            outline-offset: -2px
+        }
+
+        .storage {
+            margin-top: auto;
+            padding: 12px 6px 0;
+            border-top: 1px solid var(--line)
+        }
+
+        .storage-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+            font-size: 12px
+        }
+
+        .storage-top b {
+            font-weight: 600
+        }
+
+        .storage-top span {
+            color: var(--muted)
+        }
+
+        .sbar {
+            display: flex;
+            height: 5px;
+            border-radius: 3px;
+            overflow: hidden;
+            background: var(--line);
+            gap: 1px
+        }
+
+        .sbar i {
+            display: block;
+            min-width: 2px;
+            background: var(--accent) !important
+        }
+
+        .sbar i.trash {
+            background: var(--line2) !important
+        }
+
+        .storage.warn .storage-top b {
+            color: var(--danger)
+        }
+
+        .legend {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px 10px;
+            font-size: 11px;
+            color: var(--muted)
+        }
+
+        .scrim {
+            display: none
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        .menu-btn {
+            display: none
         }
 
         .search {
-            height: 38px;
-            max-width: 560px;
+            position: relative;
             flex: 1;
-            position: relative
+            max-width: 520px
         }
 
         .search input {
             width: 100%;
-            height: 100%;
-            background: #0f1219;
-            border: 1px solid var(--border);
-            border-radius: 9px;
-            color: var(--text);
-            padding: 0 40px 0 38px;
-            outline: none
+            height: 36px;
+            border-radius: var(--r);
+            border: 1px solid var(--line);
+            background: var(--input);
+            padding: 0 62px 0 36px;
+            outline: 0
         }
 
         .search input:focus {
             border-color: var(--accent)
         }
 
-        .search-icon {
+        .search>span:first-child {
             position: absolute;
-            left: 13px;
+            left: 11px;
             top: 9px;
-            color: var(--muted)
+            color: var(--muted);
+            pointer-events: none;
+            display: flex
         }
 
-        .search-clear {
+        .search kbd {
             position: absolute;
-            right: 9px;
-            top: 7px;
-            background: none;
-            border: 0;
-            color: var(--muted);
-            font-size: 18px
+            right: 10px;
+            top: 8px
         }
 
-        .top-actions {
-            margin-left: auto;
-            display: flex;
-            gap: 8px
-        }
-
-        .icon-btn {
-            width: 38px;
-            height: 38px;
-            border: 1px solid var(--border);
-            background: #1d222d;
-            color: var(--text);
-            border-radius: 8px
-        }
-
-        .icon-btn:hover {
-            background: var(--hover)
-        }
-
-        .body {
-            flex: 1;
-            display: flex;
-            min-height: 0
-        }
-
-        .sidebar {
-            width: 230px;
-            background: var(--panel);
-            border-right: 1px solid var(--border);
-            padding: 14px 10px;
-            display: flex;
-            flex-direction: column
-        }
-
-        .side-section {
-            margin-bottom: 20px
-        }
-
-        .side-title {
-            font-size: 11px;
-            color: var(--muted);
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 8px 12px
-        }
-
-        .side-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            padding: 10px 12px;
-            border: 0;
-            background: none;
-            color: #cdd2dd;
-            border-radius: 7px;
-            text-align: left
-        }
-
-        .side-btn:hover,
-        .side-btn.active {
-            background: var(--hover);
-            color: white
-        }
-
-        .side-btn.active {
-            color: #8490ff
-        }
-
-        .side-bottom {
-            margin-top: auto
-        }
-
-        .storage {
-            padding: 12px;
-            background: #10131a;
-            border: 1px solid var(--border);
-            border-radius: 9px
-        }
-
-        .storage-head {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            margin-bottom: 7px
-        }
-
-        .storage-head span:last-child {
+        .search .clear {
+            position: absolute;
+            right: 4px;
+            top: 4px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: grid;
+            place-items: center;
             color: var(--muted)
         }
 
-        .storage-bar {
-            height: 6px;
-            background: #292f3b;
-            border-radius: 20px;
-            overflow: hidden
+        .search .clear:hover {
+            background: var(--card-h)
         }
 
-        .storage-bar div {
-            height: 100%;
-            width: 0;
-            background: var(--accent);
-            transition: .25s
-        }
-
-        .content {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column
-        }
-
-        .toolbar {
-            height: 58px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 16px;
-            gap: 7px;
-            background: #11141b
-        }
-
-        .tool {
-            height: 36px;
-            border: 1px solid transparent;
-            background: transparent;
-            color: #cdd2dc;
-            border-radius: 7px;
-            padding: 0 11px;
-            display: flex;
-            align-items: center;
-            gap: 7px
-        }
-
-        .tool:hover {
-            background: var(--hover)
-        }
-
-        .tool.primary {
-            background: var(--accent);
-            color: #fff
-        }
-
-        .tool:disabled {
-            opacity: .4;
-            cursor: not-allowed
-        }
-
-        .separator {
-            width: 1px;
-            height: 25px;
-            background: var(--border);
-            margin: 0 4px
-        }
-
-        .sort-wrap {
+        .top-right {
             margin-left: auto;
-            position: relative
+            display: flex;
+            gap: 6px
         }
 
-        .sort-select {
-            height: 36px;
-            background: #191d26;
-            border: 1px solid var(--border);
-            color: #cdd2dc;
-            border-radius: 7px;
-            padding: 0 9px;
-            outline: none
-        }
-
-        .view-btn.active {
-            background: var(--hover);
-            color: #fff
-        }
-
-        .breadcrumb {
-            height: 48px;
+        .head {
             display: flex;
             align-items: center;
-            padding: 0 18px;
-            border-bottom: 1px solid var(--border);
-            gap: 5px;
-            overflow: auto;
-            white-space: nowrap
+            justify-content: space-between;
+            gap: 10px 16px;
+            flex-wrap: wrap;
+            padding: 14px 20px 8px
+        }
+
+        .crumbs {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0;
+            min-width: 0
         }
 
         .crumb {
-            border: 0;
-            background: none;
-            color: #aeb5c4;
-            padding: 6px 7px;
-            border-radius: 6px
-        }
-
-        .crumb:hover {
-            background: var(--hover);
-            color: white
-        }
-
-        .crumb.current {
-            color: white;
-            font-weight: 600
-        }
-
-        .crumb-sep {
-            color: #596171
-        }
-
-        .file-area {
-            flex: 1;
-            overflow: auto;
-            padding: 14px 18px;
-            position: relative
-        }
-
-        .file-area.drag-active {
-            background: rgba(88, 101, 242, .08);
-            outline: 2px dashed #5865f2;
-            outline-offset: -8px
-        }
-
-        .file-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
-            gap: 9px
-        }
-
-        .file-list {
-            display: flex;
-            flex-direction: column;
-            gap: 2px
-        }
-
-        .file-list .file {
-            min-height: 54px;
-            height: 54px;
-            display: grid;
-            grid-template-columns: 36px minmax(180px, 1fr) 120px 160px 100px;
-            align-items: center;
-            padding: 0 12px
-        }
-
-        .file-list .file-icon {
-            font-size: 23px;
-            text-align: center
-        }
-
-        .file-list .file-name {
-            margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis
-        }
-
-        .file-list .file-meta {
-            margin: 0
-        }
-
-        .file-list .file-actions {
-            display: flex;
-            justify-content: flex-end
-        }
-
-        .list-header {
-            display: grid;
-            grid-template-columns: 36px minmax(180px, 1fr) 120px 160px 100px;
-            padding: 7px 12px;
-            color: var(--muted);
-            font-size: 12px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 4px
-        }
-
-        .file {
-            position: relative;
-            background: #171b23;
-            border: 1px solid #252b36;
-            border-radius: 9px;
-            padding: 14px;
-            min-height: 145px;
-            user-select: none;
-            transition: .12s
-        }
-
-        .file:hover.file.selected {
-            background: rgba(88, 101, 242, .17);
-            border-color: #6672ef;
-            box-shadow: 0 0 0 1px rgba(88, 101, 242, .2)
-        }
-
-        .file.dragging {
-            opacity: .45
-        }
-
-        .file-icon {
-            font-size: 38px;
-            margin-bottom: 10px
-        }
-
-        .file-name {
-            font-size: 14px;
-            line-height: 19px;
-            word-break: break-word
-        }
-
-        .file-meta {
-            font-size: 11px;
-            color: var(--muted);
-            margin-top: 5px
-        }
-
-        .file-actions {
-            position: absolute;
-            right: 7px;
-            bottom: 7px;
-            display: flex;
-            gap: 3px
-        }
-
-        .mini {
-            border: 0;
-            background: #282e3a;
-            color: #cdd2dc;
-            width: 28px;
-            height: 27px;
-            border-radius: 5px
-        }
-
-        .mini:hover.empty {
-            height: 100%;
-            min-height: 250px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            color: var(--muted)
-        }
-
-        .empty-icon {
-            font-size: 50px;
-            margin-bottom: 12px
-        }
-
-        .statusbar {
-            height: 30px;
-            border-top: 1px solid var(--border);
-            background: #11141a;
-            color: var(--muted);
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            padding: 0 16px
-        }
-
-        .status-right {
-            margin-left: auto
-        }
-
-        .login {
-            max-width: 400px;
-            margin: 12vh auto
-        }
-
-        .login .card {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 28px
-        }
-
-        .login input {
-            width: 100%;
-            height: 42px;
-            padding: 0 12px;
-            border: 1px solid var(--border);
-            background: #0f1218;
-            color: #fff;
-            border-radius: 7px;
-            margin: 12px 0;
-            outline: none
-        }
-
-        .login .btn {
-            width: 100%;
-            height: 42px
-        }
-
-        .login-error {
-            color: #e66d78;
-            font-size: 13px;
-            min-height: 18px
-        }
-
-        .btn {
-            border: 0;
-            border-radius: 7px;
-            background: var(--accent);
-            color: #fff;
-            padding: 9px 14px
-        }
-
-        .btn.secondary {
-            background: #282e3a
-        }
-
-        .btn.danger {
-            background: var(--danger)
-        }
-
-        .context {
-            position: fixed;
-            z-index: 1000;
-            width: 205px;
-            background: #191d25;
-            border: 1px solid #353b47;
-            box-shadow: 0 12px 35px #0008;
-            border-radius: 8px;
-            padding: 5px;
-            display: none
-        }
-
-        .context button {
-            display: block;
-            width: 100%;
-            border: 0;
-            background: none;
-            color: #dce0e8;
-            text-align: left;
-            padding: 9px 10px;
+            padding: 3px 6px;
             border-radius: 5px;
-            font-size: 13px
-        }
-
-        .context button:hover.context .danger {
-            color: #ff7d88
-        }
-
-        .context-sep {
-            height: 1px;
-            background: #303642;
-            margin: 5px
-        }
-
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: #0009;
-            z-index: 900;
-            display: flex;
-            align-items: center;
-            justify-content: center
-        }
-
-        .modal {
-            width: min(500px, calc(100vw - 30px));
-            background: #181c24;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: 0 20px 60px #0008;
-            overflow: hidden
-        }
-
-        .modal-head {
-            padding: 16px 18px;
-            border-bottom: 1px solid var(--border);
-            font-weight: 700
-        }
-
-        .modal-body {
-            padding: 18px
-        }
-
-        .modal-foot {
-            padding: 12px 18px;
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px
-        }
-
-        .modal input {
-            width: 100%;
-            height: 40px;
-            background: #0e1117;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            color: #fff;
-            padding: 0 11px
-        }
-
-        .preview-image,
-        .preview-video {
-            max-width: 100%;
-            max-height: 70vh;
-            display: block;
-            margin: auto
-        }
-
-        .preview-frame {
-            width: 100%;
-            height: 70vh;
-            border: 0;
-            background: white
-        }
-
-        .preview-audio {
-            width: 100%
-        }
-
-        .uploads {
-            position: fixed;
-            right: 18px;
-            bottom: 18px;
-            width: 350px;
-            z-index: 800;
-            display: flex;
-            flex-direction: column;
-            gap: 8px
-        }
-
-        .upload-card {
-            background: #191d25;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 13px;
-            box-shadow: 0 10px 30px #0007
-        }
-
-        .upload-title {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            gap: 10px
-        }
-
-        .upload-title span:first-child {
+            color: var(--muted);
+            font-size: 14px;
+            max-width: 220px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap
         }
 
-        .upload-progress {
-            height: 6px;
-            background: #2a303b;
-            border-radius: 10px;
-            margin-top: 9px;
+        .crumb:hover {
+            background: var(--card-h);
+            color: var(--text)
+        }
+
+        .crumb.drop-on {
+            outline: 2px dashed var(--accent)
+        }
+
+        .crumb.cur {
+            color: var(--text);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: default;
+            max-width: 480px
+        }
+
+        .crumb.cur:hover {
+            background: none
+        }
+
+        .crumbs .sep {
+            color: var(--line2);
+            display: flex
+        }
+
+        .crumbs .sep .ic {
+            width: 14px;
+            height: 14px
+        }
+
+        .subtitle {
+            flex-basis: 100%;
+            font-size: 12px;
+            color: var(--muted);
+            padding-left: 6px
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .select {
+            height: 32px;
+            padding: 0 28px 0 10px;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            appearance: none;
+            outline: 0;
+            cursor: pointer;
+            font-size: 13px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393959c' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 9px center
+        }
+
+        .select option {
+            background: var(--card);
+            color: var(--text)
+        }
+
+        .seg {
+            display: flex;
+            border-radius: 6px;
+            border: 1px solid var(--line);
             overflow: hidden
         }
 
-        .upload-progress div {
+        .seg button {
+            width: 32px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+            color: var(--muted)
+        }
+
+        .seg button+button {
+            border-left: 1px solid var(--line)
+        }
+
+        .seg button.on {
+            background: var(--card-h);
+            color: var(--text)
+        }
+
+        .seg button .ic {
+            width: 15px;
+            height: 15px
+        }
+
+        .controls .btn {
+            height: 32px;
+            font-size: 13px
+        }
+
+        /* ---------- éléments ---------- */
+        .area {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            padding: 6px 20px 110px;
+            position: relative
+        }
+
+        .items.grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px
+        }
+
+        .item {
+            position: relative;
+            border-radius: var(--r);
+            background: var(--card);
+            border: 1px solid var(--line);
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 200px
+        }
+
+        .item:hover {
+            background: var(--card-h);
+            border-color: var(--line2)
+        }
+
+        .item.selected {
+            border-color: var(--accent);
+            background: var(--accent-soft)
+        }
+
+        .item.drop-on {
+            outline: 2px dashed var(--accent);
+            outline-offset: -2px
+        }
+
+        .item.dragging {
+            opacity: .4
+        }
+
+        .thumb {
+            position: relative;
+            aspect-ratio: 4/3;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            background: var(--thumb);
+            border-bottom: 1px solid var(--line)
+        }
+
+        .ico-big {
+            display: grid;
+            place-items: center;
+            color: var(--k)
+        }
+
+        .ico-big .ic {
+            width: 40px;
+            height: 40px;
+            stroke-width: 1.4
+        }
+
+        .thumb img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
             height: 100%;
-            background: var(--accent);
-            width: 0;
-            transition: .1s
+            object-fit: cover
         }
 
-        .upload-info {
-            font-size: 11px;
+        .info {
+            padding: 9px 11px 11px;
+            min-width: 0
+        }
+
+        .name {
+            font-weight: 500;
+            font-size: 13px;
+            line-height: 1.3;
+            word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden
+        }
+
+        .meta,
+        .path {
+            margin-top: 3px;
+            font-size: 12px;
             color: var(--muted);
-            margin-top: 6px;
-            display: flex;
-            justify-content: space-between
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
         }
 
-        @media(max-width:800px) {
+        .path {
+            display: flex;
+            align-items: center;
+            gap: 4px
+        }
+
+        .path .ic {
+            width: 12px;
+            height: 12px
+        }
+
+        .cdate,
+        .csize {
+            display: none
+        }
+
+        .check {
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            width: 22px;
+            height: 22px;
+            border-radius: 5px;
+            display: grid;
+            place-items: center;
+            color: transparent;
+            border: 1px solid var(--line2);
+            background: var(--card);
+            opacity: 0;
+            z-index: 2
+        }
+
+        .check .ic {
+            width: 13px;
+            height: 13px;
+            stroke-width: 3
+        }
+
+        .item:hover .check,
+        .item.selected .check {
+            opacity: 1
+        }
+
+        .item.selected .check {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff
+        }
+
+        .acts {
+            position: absolute;
+            right: 6px;
+            top: 6px;
+            display: flex;
+            gap: 4px;
+            z-index: 2
+        }
+
+        .acts button {
+            width: 26px;
+            height: 26px;
+            border-radius: 5px;
+            display: grid;
+            place-items: center;
+            color: var(--text);
+            background: var(--card);
+            border: 1px solid var(--line2);
+            opacity: 0
+        }
+
+        .acts button:hover {
+            background: var(--card-h)
+        }
+
+        .acts button .ic {
+            width: 14px;
+            height: 14px
+        }
+
+        .item:hover .acts button,
+        .item.selected .acts button,
+        .acts button.keep {
+            opacity: 1
+        }
+
+        .acts button.starred {
+            color: #e0a82e
+        }
+
+        .acts button.starred .ic {
+            fill: currentColor
+        }
+
+        .acts button.keep.restore {
+            color: var(--ok)
+        }
+
+        .acts button.keep.purge {
+            color: var(--danger)
+        }
+
+        @media(hover:none) {
+
+            .check,
+            .acts button {
+                opacity: 1
+            }
+        }
+
+        .items.list {
+            display: flex;
+            flex-direction: column;
+            --cols: 24px 28px minmax(0, 1fr) 140px 90px 64px
+        }
+
+        .lh {
+            display: grid;
+            grid-template-columns: var(--cols);
+            gap: 12px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: var(--muted);
+            position: sticky;
+            top: -6px;
+            z-index: 3;
+            background: var(--bg);
+            border-bottom: 1px solid var(--line)
+        }
+
+        .items.list .item {
+            display: grid;
+            grid-template-columns: var(--cols);
+            align-items: center;
+            gap: 12px;
+            padding: 0 10px;
+            height: 42px;
+            border-radius: 0;
+            border: 0;
+            border-bottom: 1px solid var(--line);
+            background: transparent;
+            contain-intrinsic-size: auto 42px
+        }
+
+        .items.list .item:hover {
+            background: var(--card-h)
+        }
+
+        .items.list .item.selected {
+            background: var(--accent-soft)
+        }
+
+        .items.list .check {
+            position: static;
+            opacity: 1;
+            grid-column: 1;
+            border-color: transparent;
+            background: none
+        }
+
+        .items.list .item:hover .check {
+            border-color: var(--line2)
+        }
+
+        .items.list .item.selected .check {
+            border-color: var(--accent);
+            background: var(--accent)
+        }
+
+        .items.list .thumb {
+            grid-column: 2;
+            width: 28px;
+            height: 28px;
+            aspect-ratio: auto;
+            border: 0;
+            background: none;
+            overflow: visible
+        }
+
+        .items.list .thumb img {
+            display: none
+        }
+
+        .items.list .ico-big .ic {
+            width: 20px;
+            height: 20px;
+            stroke-width: 1.6
+        }
+
+        .items.list .info {
+            grid-column: 3;
+            padding: 0
+        }
+
+        .items.list .name {
+            -webkit-line-clamp: 1;
+            line-clamp: 1;
+            font-size: 13.5px
+        }
+
+        .items.list .meta {
+            display: none
+        }
+
+        .items.list .path {
+            margin: 0;
+            font-size: 11px
+        }
+
+        .items.list .cdate,
+        .items.list .csize {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            white-space: nowrap
+        }
+
+        .items.list .acts {
+            position: static;
+            grid-column: 6;
+            justify-content: flex-end
+        }
+
+        .items.list .acts button {
+            background: none;
+            border-color: transparent
+        }
+
+        .items.shares {
+            display: flex;
+            flex-direction: column
+        }
+
+        .share-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        .share-row:hover {
+            background: var(--card-h)
+        }
+
+        .share-row .ico-big .ic {
+            width: 22px;
+            height: 22px
+        }
+
+        .share-row .grow {
+            flex: 1;
+            min-width: 0
+        }
+
+        .share-row .name {
+            -webkit-line-clamp: 1;
+            line-clamp: 1;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 4px
+        }
+
+        .row-actions .danger:hover {
+            color: var(--danger)
+        }
+
+        .skel {
+            aspect-ratio: 4/3.1;
+            border-radius: var(--r);
+            background: var(--card);
+            border: 1px solid var(--line);
+            animation: pulse 1.4s ease-in-out infinite
+        }
+
+        .empty {
+            min-height: 50vh;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            padding: 20px
+        }
+
+        .empty-orb {
+            margin: 0 auto 14px;
+            color: var(--line2)
+        }
+
+        .empty-orb .ic {
+            width: 44px;
+            height: 44px;
+            stroke-width: 1.3
+        }
+
+        .empty h3 {
+            font-size: 16px;
+            font-weight: 600
+        }
+
+        .empty p {
+            margin: 4px auto 16px;
+            max-width: 340px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .empty .btns {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap
+        }
+
+        /* ---------- surcouches ---------- */
+        .bulk {
+            position: fixed;
+            left: calc(118px + 50%);
+            bottom: 20px;
+            transform: translateX(-50%);
+            display: none;
+            align-items: center;
+            gap: 2px;
+            padding: 5px;
+            border-radius: 10px;
+            background: var(--panel);
+            border: 1px solid var(--line2);
+            box-shadow: var(--shadow);
+            z-index: 70;
+            max-width: calc(100vw - 24px)
+        }
+
+        .bulk.show {
+            display: flex
+        }
+
+        .bulk .count {
+            padding: 0 12px;
+            white-space: nowrap
+        }
+
+        .bulk .vsep {
+            width: 1px;
+            height: 20px;
+            background: var(--line2);
+            margin: 0 4px
+        }
+
+        .bulk .b {
+            height: 32px;
+            padding: 0 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            white-space: nowrap
+        }
+
+        .bulk .b:hover {
+            background: var(--card-h)
+        }
+
+        .bulk .b.danger {
+            color: var(--danger)
+        }
+
+        .menu {
+            position: fixed;
+            z-index: 1000;
+            min-width: 210px;
+            padding: 4px;
+            border-radius: 8px;
+            background: var(--panel);
+            border: 1px solid var(--line2);
+            box-shadow: var(--shadow)
+        }
+
+        .menu button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 0 10px;
+            height: 32px;
+            border-radius: 5px;
+            font-size: 13px;
+            text-align: left
+        }
+
+        .menu button:hover {
+            background: var(--card-h)
+        }
+
+        .menu button .ic {
+            width: 16px;
+            height: 16px;
+            color: var(--muted)
+        }
+
+        .menu button kbd {
+            margin-left: auto
+        }
+
+        .menu button.danger,
+        .menu button.danger .ic {
+            color: var(--danger)
+        }
+
+        .menu .sep {
+            height: 1px;
+            background: var(--line);
+            margin: 4px 6px
+        }
+
+        .toasts {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 3000;
+            pointer-events: none
+        }
+
+        .toast {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 240px;
+            max-width: 360px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: var(--panel);
+            border: 1px solid var(--line2);
+            box-shadow: var(--shadow);
+            font-size: 13px;
+            animation: fade .2s
+        }
+
+        .toast.out {
+            opacity: 0;
+            transition: opacity .25s
+        }
+
+        .toast.ok .ic {
+            color: var(--ok)
+        }
+
+        .toast.error .ic {
+            color: var(--danger)
+        }
+
+        .toast.info .ic {
+            color: var(--accent)
+        }
+
+        .toast button {
+            margin-left: auto;
+            font-weight: 600;
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 5px
+        }
+
+        .toast button:hover {
+            background: var(--accent-soft)
+        }
+
+        .dropzone {
+            position: fixed;
+            inset: 10px;
+            z-index: 2500;
+            display: none;
+            place-items: center;
+            border-radius: 12px;
+            border: 2px dashed var(--accent);
+            background: var(--overlay);
+            pointer-events: none
+        }
+
+        .dropzone.show {
+            display: grid
+        }
+
+        .dropzone div {
+            text-align: center;
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff
+        }
+
+        .dropzone .ic {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 8px;
+            display: block
+        }
+
+        .uploads {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            width: 340px;
+            max-width: calc(100vw - 32px);
+            border-radius: 10px;
+            background: var(--panel);
+            border: 1px solid var(--line2);
+            box-shadow: var(--shadow);
+            z-index: 1500;
+            overflow: hidden
+        }
+
+        .u-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px 8px 14px;
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        .u-list {
+            max-height: 280px;
+            overflow: auto;
+            padding: 4px
+        }
+
+        .uploads.min .u-list {
+            display: none
+        }
+
+        .uploads.min #uToggle {
+            transform: rotate(180deg)
+        }
+
+        .u-job {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px
+        }
+
+        .u-job .ico-big .ic {
+            width: 22px;
+            height: 22px
+        }
+
+        .u-job .grow {
+            flex: 1;
+            min-width: 0
+        }
+
+        .u-job .name {
+            -webkit-line-clamp: 1;
+            line-clamp: 1;
+            font-size: 12.5px
+        }
+
+        .u-job .bar {
+            height: 3px;
+            border-radius: 2px;
+            background: var(--line);
+            margin: 6px 0 3px;
+            overflow: hidden
+        }
+
+        .u-job .bar i {
+            display: block;
+            height: 100%;
+            width: 0;
+            background: var(--accent)
+        }
+
+        .u-job.done .bar i {
+            background: var(--ok)
+        }
+
+        .u-job.fail .bar i {
+            background: var(--danger)
+        }
+
+        .u-job .meta {
+            margin: 0;
+            font-size: 11.5px
+        }
+
+        /* ---------- modale ---------- */
+        .backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: grid;
+            place-items: center;
+            padding: 16px;
+            background: var(--overlay);
+            animation: fade .15s both
+        }
+
+        .modal {
+            width: min(440px, 100%);
+            max-height: calc(100dvh - 32px);
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            background: var(--panel);
+            border: 1px solid var(--line2);
+            box-shadow: var(--shadow);
+            overflow: hidden
+        }
+
+        .modal.wide {
+            width: min(900px, 100%);
+            height: min(700px, calc(100dvh - 32px))
+        }
+
+        .m-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 14px 14px 6px 20px
+        }
+
+        .m-head h3 {
+            font-size: 15px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .m-body {
+            padding: 8px 20px 14px;
+            overflow: auto;
+            flex: 1;
+            min-height: 0;
+            font-size: 13.5px
+        }
+
+        .m-foot {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 10px 20px 16px
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 14px 0 2px
+        }
+
+        .chip {
+            height: 32px;
+            padding: 0 13px;
+            border-radius: 6px;
+            border: 1px solid var(--line2);
+            background: var(--card)
+        }
+
+        .chip:hover {
+            background: var(--card-h)
+        }
+
+        .chip.on {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600
+        }
+
+        .copy-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px
+        }
+
+        .tree {
+            max-height: 300px;
+            overflow: auto;
+            margin-top: 10px;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: var(--input)
+        }
+
+        .tr {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            width: 100%;
+            height: 32px;
+            padding: 0 10px 0 calc(10px + var(--d)*18px);
+            border-radius: 5px;
+            text-align: left
+        }
+
+        .tr:hover {
+            background: var(--card-h)
+        }
+
+        .tr.on {
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 600
+        }
+
+        .tr .ic {
+            color: var(--folder);
+            width: 16px;
+            height: 16px
+        }
+
+        .tr.on .ic {
+            color: var(--accent)
+        }
+
+        .editor {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .editor textarea {
+            flex: 1;
+            width: 100%;
+            resize: none;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--line2);
+            background: var(--input);
+            font: 13px/1.6 var(--mono);
+            outline: 0;
+            tab-size: 2;
+            white-space: pre
+        }
+
+        .editor textarea:focus {
+            border-color: var(--accent)
+        }
+
+        .ed-foot {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .ed-foot .dirty {
+            color: #d9a441;
+            font-weight: 600
+        }
+
+        .modal.wide .m-body {
+            display: flex;
+            flex-direction: column
+        }
+
+        /* ---------- visionneuse ---------- */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 2200;
+            display: flex;
+            flex-direction: column;
+            background: rgba(8, 8, 9, .94);
+            color: #eee
+        }
+
+        .lb-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px
+        }
+
+        .lb-top .grow {
+            flex: 1;
+            min-width: 0
+        }
+
+        .lb-top b {
+            display: block;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .lb-top small {
+            color: #999
+        }
+
+        .lightbox .iconbtn {
+            background: #222;
+            border-color: #333;
+            color: #eee
+        }
+
+        .lightbox .iconbtn:hover {
+            background: #2c2c2c
+        }
+
+        .lb-stage {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            place-items: center;
+            padding: 0 72px 20px;
+            position: relative
+        }
+
+        .lb-stage img,
+        .lb-stage video {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px
+        }
+
+        .lb-stage img {
+            cursor: zoom-in
+        }
+
+        .lb-stage img.zoom {
+            max-width: none;
+            max-height: none;
+            cursor: zoom-out
+        }
+
+        .lb-stage.scroll {
+            overflow: auto;
+            display: block;
+            text-align: center
+        }
+
+        .lb-stage iframe {
+            width: min(1000px, 100%);
+            height: 100%;
+            border: 0;
+            border-radius: 4px;
+            background: #fff
+        }
+
+        .audio-card {
+            display: grid;
+            gap: 14px;
+            justify-items: center;
+            padding: 30px;
+            border-radius: 10px;
+            background: #1b1b1d;
+            border: 1px solid #333;
+            width: min(420px, 100%);
+            text-align: center
+        }
+
+        .audio-card .ic {
+            width: 44px;
+            height: 44px;
+            color: #999
+        }
+
+        .audio-card audio {
+            width: 100%
+        }
+
+        .lb-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%
+        }
+
+        .lb-nav.prev {
+            left: 12px
+        }
+
+        .lb-nav.next {
+            right: 12px
+        }
+
+        /* ---------- responsive ---------- */
+        .fab {
+            display: none
+        }
+
+        @media(max-width:980px) {
+            .app {
+                grid-template-columns: 1fr
+            }
+
             .sidebar {
-                width: 65px
+                position: fixed;
+                inset: 0 auto 0 0;
+                width: 270px;
+                transform: translateX(-102%);
+                transition: transform .2s
             }
 
-            .side-title,
-            .side-btn span,
-            .storage {
+            .nav-open .sidebar {
+                transform: none;
+                box-shadow: var(--shadow)
+            }
+
+            .nav-open .scrim {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: var(--overlay);
+                z-index: 55
+            }
+
+            .menu-btn {
+                display: grid
+            }
+
+            .bulk {
+                left: 50%
+            }
+
+            .kbd-hint {
                 display: none
             }
 
-            .side-btn {
-                justify-content: center
+            .search input {
+                padding-right: 36px
             }
 
-            .brand {
+            .fab {
+                display: grid;
+                position: fixed;
+                right: 16px;
+                bottom: 18px;
+                width: 52px;
+                height: 52px;
+                border-radius: 14px;
+                place-items: center;
+                color: #fff;
+                background: var(--accent);
+                box-shadow: var(--shadow);
+                z-index: 50
+            }
+
+            .fab .ic {
+                width: 24px;
+                height: 24px
+            }
+
+            .uploads {
+                bottom: 80px
+            }
+        }
+
+        @media(max-width:640px) {
+            .topbar {
+                padding: 10px 12px
+            }
+
+            .head {
+                padding: 10px 14px 6px
+            }
+
+            .area {
+                padding: 4px 12px 140px
+            }
+
+            .items.grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px
+            }
+
+            .items.list {
+                --cols: 24px 28px minmax(0, 1fr) 64px
+            }
+
+            .items.list .cdate,
+            .lh span:nth-child(4),
+            .lh span:nth-child(5) {
                 display: none
             }
 
-            .file-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr))
+            .items.list .csize {
+                grid-column: 4;
+                text-align: right
             }
 
-            .file-list .file {
-                grid-template-columns: 36px 1fr 70px
-            }
-
-            .file-list .file-meta:nth-of-type(n+2),
-            .list-header>*:nth-child(n+3) {
+            .items.list .acts {
                 display: none
             }
 
-            .toolbar {
-                overflow: auto
+            .bulk .b span {
+                display: none
             }
 
-            .tool span {
+            .bulk .b {
+                padding: 0 9px
+            }
+
+            .bulk {
+                bottom: 14px
+            }
+
+            .bulk .count {
+                padding: 0 8px
+            }
+
+            .lb-stage {
+                padding: 0 10px 16px
+            }
+
+            .lb-nav {
                 display: none
+            }
+
+            .toasts {
+                left: 10px;
+                right: 10px
+            }
+
+            .toast {
+                min-width: 0;
+                max-width: none
+            }
+
+            .top-right .hide-sm {
+                display: none
+            }
+        }
+
+        @media (prefers-reduced-motion:reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important
             }
         }
     </style>
-
 </head>
 
 <body>
+    <!-- LOGIN -->
+    <main id="login" class="login hidden">
+        <form class="login-card" id="loginCard" onsubmit="doLogin(event)">
+            <div class="logo" id="loginLogo"></div>
+            <h1>Cloud Explorer</h1>
+            <p>Connectez-vous pour accéder à vos fichiers.</p>
+            <label class="lbl" for="password">Mot de passe</label>
+            <div class="pw">
+                <input id="password" class="field" type="password" placeholder="Mot de passe"
+                    autocomplete="current-password" autofocus>
+                <button type="button" id="pwToggle" aria-label="Afficher le mot de passe"></button>
+            </div>
+            <button class="btn primary" id="loginBtn" type="submit">Se connecter</button>
+            <div class="login-error" id="loginError"></div>
+        </form>
+    </main>
 
-    <div id="login" class="login">
-        <div class="card">
-            <h1>☁ Cloud Explorer</h1>
-            <p>Connexion à votre stockage personnel.</p>
-            <input id="password" type="password" placeholder="Mot de passe">
-            <button class="btn" onclick="doLogin()">Connexion</button>
-            <p id="loginError" class="login-error"></p>
-        </div>
-    </div>
-
+    <!-- APP -->
     <div id="app" class="app hidden">
-        <header class="topbar">
-            <div class="brand">☁ <span>Cloud</span> Explorer</div>
-            <div class="search">
-                <span class="search-icon">⌕</span>
-                <input id="search" placeholder="Rechercher dans les fichiers..." oninput="searchFiles()">
-                <button class="search-clear hidden" id="searchClear" onclick="clearSearch()">×</button>
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <div class="logo" id="brandLogo"></div>
+                <div>Cloud Explorer</div>
             </div>
-            <div class="top-actions">
-                <button class="icon-btn" title="Actualiser" onclick="load()">↻</button>
-                <button class="icon-btn" title="Déconnexion" onclick="logout()">⇥</button>
+
+            <button class="new-btn" id="newBtn"></button>
+
+            <nav class="nav" id="nav"></nav>
+
+            <div class="storage" id="storage">
+                <div class="storage-top"><b id="stUsed">—</b><span id="stQuota"></span></div>
+                <div class="sbar" id="stBar"></div>
+                <div class="legend" id="stLegend"></div>
             </div>
-        </header>
+        </aside>
+        <div class="scrim" id="scrim"></div>
 
-        <div class="body">
-            <aside class="sidebar">
-                <div class="side-section">
-                    <div class="side-title">Navigation</div>
-                    <button class="side-btn active" id="homeBtn" onclick="goHome()">🏠 <span>Accueil</span></button>
-                    <button class="side-btn" onclick="goHome()">💾 <span>Mes fichiers</span></button>
-                    <button class="side-btn" onclick="showTrash()">🗑️ <span>Corbeille</span></button>
-                    <button class="side-btn" onclick="showShares()">🔗 <span>Partagés</span></button>
+        <section class="main">
+            <header class="topbar">
+                <button class="iconbtn menu-btn" id="menuBtn" aria-label="Menu"></button>
+                <div class="search">
+                    <span id="searchIcon"></span>
+                    <input id="search" placeholder="Rechercher dans tous vos fichiers…" autocomplete="off">
+                    <kbd class="kbd-hint">Ctrl K</kbd>
+                    <button class="clear hidden" id="searchClear" aria-label="Effacer"></button>
                 </div>
-
-                <div class="side-section">
-                    <div class="side-title">Actions</div>
-                    <button class="side-btn" onclick="newFolder()">📁 <span>Nouveau dossier</span></button>
-                    <button class="side-btn" onclick="document.getElementById('upload').click()">📤 <span>Envoyer un
-                            fichier</span></button>
+                <div class="top-right">
+                    <button class="iconbtn" id="refreshBtn" title="Actualiser"></button>
+                    <button class="iconbtn" id="themeBtn" title="Changer de thème"></button>
+                    <button class="iconbtn hide-sm" id="logoutBtn" title="Déconnexion"></button>
                 </div>
+            </header>
 
-                <div class="side-bottom">
-                    <div class="storage">
-                        <div class="storage-head"><span>Stockage</span><span id="storageText">—</span></div>
-                        <div class="storage-bar">
-                            <div id="storageBar"></div>
-                        </div>
+            <div class="head">
+                <div class="crumbs" id="crumbs"></div>
+                <div class="controls" id="controls">
+                    <button class="btn danger hidden" id="emptyTrash"></button>
+                    <select class="select" id="sort" aria-label="Trier">
+                        <option value="name-asc">Nom (A → Z)</option>
+                        <option value="name-desc">Nom (Z → A)</option>
+                        <option value="date-desc">Plus récents</option>
+                        <option value="date-asc">Plus anciens</option>
+                        <option value="size-desc">Plus volumineux</option>
+                        <option value="size-asc">Plus légers</option>
+                    </select>
+                    <div class="seg" id="layoutSeg">
+                        <button data-layout="grid" title="Grille"></button>
+                        <button data-layout="list" title="Liste"></button>
                     </div>
                 </div>
-            </aside>
+                <div class="subtitle" id="subtitle"></div>
+            </div>
 
-            <section class="content">
-                <div class="toolbar">
-                    <button class="tool primary" onclick="document.getElementById('upload').click()">📤
-                        <span>Envoyer</span></button>
-                    <button class="tool" onclick="newFolder()">📁 <span>Nouveau dossier</span></button>
-                    <div class="separator"></div>
-                    <button class="tool" id="copyBtn" disabled onclick="copySelected()">📋 <span>Copier</span></button>
-                    <button class="tool" id="pasteBtn" disabled onclick="pasteItems()">📌 <span>Coller</span></button>
-                    <button class="tool" id="moveBtn" disabled onclick="moveSelected()">↗ <span>Déplacer</span></button>
-                    <button class="tool" id="trashBtn" disabled onclick="trashSelected()">🗑
-                        <span>Supprimer</span></button>
-                    <div class="separator"></div>
-                    <button class="tool" onclick="goUp()">⬆ <span>Parent</span></button>
-                    <div class="sort-wrap">
-                        <select class="sort-select" id="sortSelect" onchange="changeSort()">
-                            <option value="name-asc">Nom ↑</option>
-                            <option value="name-desc">Nom ↓</option>
-                            <option value="date-desc">Modifié récemment</option>
-                            <option value="date-asc">Modifié anciennement</option>
-                            <option value="size-desc">Taille ↓</option>
-                            <option value="size-asc">Taille ↑</option>
-                        </select>
-                    </div>
-                    <button class="tool view-btn active" id="gridViewBtn" onclick="setView('grid')">▦</button>
-                    <button class="tool view-btn" id="listViewBtn" onclick="setView('list')">☷</button>
-                    <input id="upload" type="file" hidden onchange="uploadFile(this.files[0])">
-                </div>
-
-                <div class="breadcrumb" id="breadcrumb"></div>
-
-                <div class="file-area" id="fileArea" onclick="backgroundClick(event)">
-                    <div id="items" class="file-grid"></div>
-                </div>
-
-                <div class="statusbar">
-                    <span id="statusText">0 élément</span>
-                    <span class="status-right" id="selectionText"></span>
-                </div>
-            </section>
-        </div>
+            <div class="area" id="area">
+                <div id="items" class="items grid"></div>
+            </div>
+        </section>
     </div>
 
-    <div id="context" class="context"></div>
-    <div id="uploads" class="uploads"></div>
-    <div id="modalRoot"></div>
+    <button class="fab hidden" id="fab" aria-label="Nouveau"></button>
+    <div class="bulk" id="bulk"></div>
+    <div class="uploads hidden" id="uploads">
+        <div class="u-head"><span id="uTitle"></span>
+            <div style="display:flex;gap:6px"><button class="iconbtn sm" id="uToggle"></button><button
+                    class="iconbtn sm" id="uClose"></button></div>
+        </div>
+        <div class="u-list" id="uList"></div>
+    </div>
+    <div class="dropzone" id="dropzone">
+        <div><span id="dropIcon"></span>Déposez vos fichiers pour les envoyer</div>
+    </div>
+    <div class="lightbox hidden" id="lightbox">
+        <div class="lb-top">
+            <div class="grow"><b id="lbTitle"></b><small id="lbMeta"></small></div>
+            <button class="iconbtn" id="lbDl" title="Télécharger"></button>
+            <button class="iconbtn" id="lbShare" title="Partager"></button>
+            <button class="iconbtn" id="lbClose" title="Fermer (Échap)"></button>
+        </div>
+        <div class="lb-stage" id="lbStage"></div>
+        <button class="iconbtn lb-nav prev" id="lbPrev"></button>
+        <button class="iconbtn lb-nav next" id="lbNext"></button>
+    </div>
+    <div class="toasts" id="toasts"></div>
+    <input id="fileInput" type="file" multiple hidden>
 
     <script>
-        let current = null, pathStack = [], items = [], selected = new Set(), clipboard = [], clipboardMode = null, view = "grid", search = "", sort = "name", direction = "asc", trashMode = false, sharesMode = false;
+        'use strict';
 
-        const $ = id => document.getElementById(id);
-        const fmt = n => { if (n < 1024) return n + " B"; if (n < 1048576) return (n / 1024).toFixed(1) + " KB"; if (n < 1073741824) return (n / 1048576).toFixed(1) + " MB"; return (n / 1073741824).toFixed(2) + " GB" };
-        const fmtDate = t => t ? new Date(t).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
-        const api = async (url, opt = {}) => { const r = await fetch(url, opt); if (r.status === 401) { showLogin(); throw Error("auth") } const d = await r.json().catch(() => ({})); if (!r.ok) throw Error(d.error || "Erreur"); return d };
+        /* ============ icônes (SVG inline, style Lucide) ============ */
+        const ICONS = {
+            cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+            folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+            folderPlus: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M12 10v6"/><path d="M9 13h6"/>',
+            file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+            filePlus: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 12v6"/>',
+            fileText: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+            image: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
+            video: '<path d="m16 13 5.22 3.48a.5.5 0 0 0 .78-.42V7.94a.5.5 0 0 0-.78-.42L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
+            music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+            archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+            code: '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
+            star: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
+            clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+            link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+            trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+            upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+            download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+            plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+            search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+            x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+            more: '<circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/>',
+            grid: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+            list: '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+            eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+            eyeOff: '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="m2 2 20 20"/>',
+            edit: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+            copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+            scissors: '<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',
+            paste: '<path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1Z"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/>',
+            move: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+            sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+            moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+            logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+            refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+            menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
+            check: '<path d="M20 6 9 17l-5-5"/>',
+            chevR: '<path d="m9 18 6-6-6-6"/>',
+            chevL: '<path d="m15 18-6-6 6-6"/>',
+            chevD: '<path d="m6 9 6 6 6-6"/>',
+            restore: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>',
+            alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+            info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+            open: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+            hdd: '<line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/>'
+        };
+        const I = (n, c = '') => `<svg class="ic ${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
-        function showLogin() { $("login").classList.remove("hidden"); $("app").classList.add("hidden") }
-        async function check() { try { await api("/api/auth/me"); $("login").classList.add("hidden"); $("app").classList.remove("hidden"); load() } catch { } }
-        async function doLogin() { try { await api("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: $("password").value }) }); $("password").value = ""; $("loginError").textContent = ""; check() } catch (e) { $("loginError").textContent = "Mot de passe incorrect." } }
-        async function logout() { await api("/api/auth/logout", { method: "POST" }); showLogin() }
+        /* ============ utilitaires ============ */
+        const $ = (s, r = document) => r.querySelector(s);
+        const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const ls = { get: k => { try { return localStorage.getItem(k) } catch { return null } }, set: (k, v) => { try { localStorage.setItem(k, v) } catch { } } };
+        const COARSE = matchMedia('(pointer:coarse)').matches;
+        const UNITS = ['o', 'Ko', 'Mo', 'Go', 'To'];
+        const fmt = n => { n = Number(n) || 0; let i = 0; while (n >= 1024 && i < 4) { n /= 1024; i++ } return (i ? n.toFixed(n < 10 ? 2 : n < 100 ? 1 : 0) : n) + ' ' + UNITS[i] };
+        const rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' });
+        function ago(t) {
+            if (!t) return '—';
+            const d = (t - Date.now()) / 1000, a = Math.abs(d);
+            if (a < 45) return 'à l’instant';
+            if (a < 3600) return rtf.format(Math.round(d / 60), 'minute');
+            if (a < 86400) return rtf.format(Math.round(d / 3600), 'hour');
+            if (a < 604800) return rtf.format(Math.round(d / 86400), 'day');
+            const dt = new Date(t);
+            return dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: dt.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+        }
+        function until(t) {
+            const days = Math.ceil((t - Date.now()) / 86400000);
+            return days <= 0 ? 'Expire aujourd’hui' : days === 1 ? 'Expire demain' : `Expire dans ${days} jours`;
+        }
+        const plural = (n, s, p = s + 's') => `${n} ${n > 1 ? p : s}`;
+        const ERR = {
+            'Storage quota exceeded': 'Espace de stockage insuffisant.',
+            'File is too large': 'Fichier trop volumineux.',
+            'An item with this name already exists': 'Un élément porte déjà ce nom.',
+            'Invalid folder name': 'Nom de dossier invalide.',
+            'Invalid name': 'Nom invalide.',
+            'Invalid filename': 'Nom de fichier invalide.',
+            'Parent folder not found': 'Dossier parent introuvable.',
+            'Destination folder not found': 'Dossier de destination introuvable.',
+            'Cannot move a folder into itself': 'Impossible de déplacer un dossier dans lui-même.',
+            'Invalid destination': 'Destination invalide.',
+            'File not found': 'Fichier introuvable.',
+            'Item not found': 'Élément introuvable.'
+        };
 
+        async function api(url, opt = {}) {
+            const r = await fetch(url, opt);
+            if (r.status === 401) { showLogin(); throw new Error('Session expirée'); }
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(ERR[d.error] || d.error || (r.status === 429 ? 'Trop de tentatives, réessayez plus tard.' : 'Une erreur est survenue.'));
+            return d;
+        }
+        const J = (method, body) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const run = fn => Promise.resolve().then(fn).catch(e => { if (e.message !== 'Session expirée') toast(e.message, 'error') });
+        async function copyText(text) {
+            try { await navigator.clipboard.writeText(text); return true } catch { }
+            const t = document.createElement('textarea'); t.value = text; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select();
+            let ok = false; try { ok = document.execCommand('copy') } catch { } t.remove(); return ok;
+        }
+
+        /* ============ types de fichiers ============ */
+        const KIND = {
+            folder: { icon: 'folder', c: 'var(--folder)' }, image: { icon: 'image', c: 'var(--muted)' }, video: { icon: 'video', c: 'var(--muted)' },
+            audio: { icon: 'music', c: 'var(--muted)' }, pdf: { icon: 'fileText', c: 'var(--muted)' }, archive: { icon: 'archive', c: 'var(--muted)' },
+            code: { icon: 'code', c: 'var(--muted)' }, text: { icon: 'fileText', c: 'var(--muted)' }, file: { icon: 'file', c: 'var(--muted)' }
+        };
+        const CODE_EXT = new Set(['js', 'mjs', 'cjs', 'ts', 'jsx', 'tsx', 'css', 'scss', 'less', 'html', 'htm', 'xml', 'json', 'yml', 'yaml', 'toml', 'py', 'rb', 'php', 'java', 'c', 'h', 'cpp', 'hpp', 'cs', 'go', 'rs', 'kt', 'swift', 'lua', 'vue', 'svelte', 'ejs', 'sql', 'sh', 'bash', 'bat', 'ps1']);
+        const ARCH_EXT = new Set(['zip', 'rar', '7z', 'tar', 'gz', 'tgz', 'bz2', 'xz']);
+        const extOf = n => (n.includes('.') ? n.split('.').pop() : '').toLowerCase();
+        function kind(x) {
+            if (x.type === 'folder') return 'folder';
+            const m = x.mime || '', e = extOf(x.name);
+            if (m.startsWith('image/')) return 'image';
+            if (m.startsWith('video/')) return 'video';
+            if (m.startsWith('audio/')) return 'audio';
+            if (m === 'application/pdf' || e === 'pdf') return 'pdf';
+            if (/zip|rar|7z|tar|gzip|compressed/.test(m) || ARCH_EXT.has(e)) return 'archive';
+            if (CODE_EXT.has(e)) return 'code';
+            if (m.startsWith('text/') || x.editable) return 'text';
+            return 'file';
+        }
+
+        /* ============ état ============ */
+        const VIEWS = {
+            files: { label: 'Mes fichiers', icon: 'hdd' },
+            recent: { label: 'Récents', icon: 'clock' },
+            starred: { label: 'Favoris', icon: 'star' },
+            shared: { label: 'Liens partagés', icon: 'link' },
+            trash: { label: 'Corbeille', icon: 'trash' }
+        };
+        const S = {
+            view: 'files', current: null, items: [], shares: [], folders: [], fmap: new Map(), sel: new Set(), anchor: null,
+            clip: { ids: [], mode: null }, layout: ls.get('ce.layout') || 'list', sort: ls.get('ce.sort') || 'name', dir: ls.get('ce.dir') || 'asc',
+            search: '', storage: null, loading: true, req: 0, modal: null, lb: null, dragIds: []
+        };
+        const byId = id => S.items.find(x => x.id === id);
+        const selItems = () => S.items.filter(x => S.sel.has(x.id));
+        const folderName = id => S.fmap.get(id)?.name;
+        function chain(id) { const out = []; let f = id && S.fmap.get(id); while (f) { out.unshift(f); f = f.parent && S.fmap.get(f.parent) } return out }
+        const pathOf = x => ['Mes fichiers', ...chain(x.parent).map(f => f.name)].join(' / ');
+
+        /* ============ thème, login ============ */
+        function setTheme(t) {
+            document.documentElement.dataset.theme = t; ls.set('ce.theme', t);
+            $('#themeBtn').innerHTML = I(t === 'dark' ? 'sun' : 'moon');
+            $('meta[name=theme-color]').content = t === 'dark' ? '#141516' : '#f5f5f3';
+        }
+        function showLogin() {
+            $('#app').classList.add('hidden'); $('#fab').classList.add('hidden'); $('#login').classList.remove('hidden');
+            setTimeout(() => $('#password').focus(), 60);
+        }
+        async function boot() {
+            try { await api('/api/auth/me'); } catch { return showLogin(); }
+            $('#login').classList.add('hidden'); $('#app').classList.remove('hidden'); $('#fab').classList.remove('hidden');
+            route();
+        }
+        async function doLogin(e) {
+            e.preventDefault();
+            const btn = $('#loginBtn'), err = $('#loginError'), card = $('#loginCard');
+            btn.disabled = true; btn.classList.add('busy'); err.textContent = '';
+            try {
+                await api('/api/auth/login', J('POST', { password: $('#password').value }));
+                $('#password').value = ''; boot();
+            } catch (x) {
+                err.textContent = x.message === 'Session expirée' ? 'Mot de passe incorrect.' : x.message;
+                card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); $('#password').select();
+            } finally { btn.disabled = false; btn.classList.remove('busy') }
+        }
+        async function logout() { await run(() => api('/api/auth/logout', { method: 'POST' })); showLogin() }
+
+        /* ============ routage / chargement ============ */
+        function go(view = 'files', id = null) {
+            const h = '#' + view + (id ? '/' + id : '');
+            if (location.hash === h) route(); else location.hash = h;
+        }
+        function route() {
+            const [v, id] = location.hash.slice(1).split('/');
+            S.view = VIEWS[v] ? v : 'files';
+            S.current = S.view === 'files' && id ? id : null;
+            S.search = ''; $('#search').value = ''; $('#searchClear').classList.add('hidden');
+            S.sel.clear(); S.items = []; S.shares = []; S.loading = true;
+            document.body.classList.remove('nav-open');
+            renderAll(); load();
+        }
+
+        async function fetchList() {
+            switch (S.view) {
+                case 'recent': return (await api('/api/recent')).items;
+                case 'starred': return (await api('/api/starred')).items;
+                case 'trash': return (await api('/api/trash')).items;
+                case 'shared': return (await api('/api/shares')).shares;
+                default: {
+                    const p = new URLSearchParams({ sort: S.sort, dir: S.dir });
+                    if (S.search) p.set('search', S.search); else if (S.current) p.set('parent', S.current);
+                    return (await api('/api/files?' + p)).items;
+                }
+            }
+        }
         async function load() {
-            trashMode = false; sharesMode = false;
-            const params = new URLSearchParams();
-            if (current) params.set("parent", current);
-            if (search) params.set("search", search);
-            params.set("sort", sort); params.set("dir", direction);
-            const d = await api("/api/files?" + params);
-            items = d.items; selected.clear(); renderBreadcrumb(); renderItems(); updateActions(); storage();
+            const token = ++S.req;
+            try {
+                const [tree, list, storage] = await Promise.all([api('/api/tree'), fetchList(), api('/api/storage')]);
+                if (token !== S.req) return;
+                S.folders = tree.folders; S.fmap = new Map(S.folders.map(f => [f.id, f])); S.storage = storage;
+                if (S.view === 'files' && S.current && !S.fmap.has(S.current)) { toast('Ce dossier n’existe plus.', 'info'); return location.replace('#files') }
+                if (S.view === 'shared') S.shares = list; else S.items = list;
+                S.sel = new Set([...S.sel].filter(id => byId(id)));
+                S.loading = false; renderAll();
+            } catch (e) { if (token === S.req) { S.loading = false; renderAll(); if (e.message !== 'Session expirée') toast(e.message, 'error') } }
         }
 
-        function renderBreadcrumb() {
-            const el = $("breadcrumb"); el.innerHTML = "";
-            const root = document.createElement("button"); root.className = "crumb" + (!current ? " current" : ""); root.textContent = "🏠 Accueil"; root.onclick = goHome; el.appendChild(root);
-            pathStack.forEach((x, i) => { const sep = document.createElement("span"); sep.className = "crumb-sep"; sep.textContent = "›"; el.appendChild(sep); const b = document.createElement("button"); b.className = "crumb" + (i === pathStack.length - 1 ? " current" : ""); b.textContent = x.name; b.onclick = () => { pathStack = pathStack.slice(0, i + 1); current = x.id; load() }; el.appendChild(b) });
+        /* ============ rendu ============ */
+        function renderAll() { renderNav(); renderHead(); renderItems(); renderStorage(); renderBulk() }
+
+        function renderNav() {
+            $('#nav').innerHTML = Object.entries(VIEWS).map(([k, v]) =>
+                `<button class="nav-btn ${S.view === k ? 'active' : ''}" data-view="${k}" ${k === 'files' ? 'data-drop="root"' : ''}>${I(v.icon)}<span>${v.label}</span></button>`).join('');
         }
 
-        function icon(x) { if (x.type === "folder") return "📁"; if (x.mime?.startsWith("image/")) return "🖼️"; if (x.mime?.startsWith("video/")) return "🎬"; if (x.mime?.startsWith("audio/")) return "🎵"; if (x.mime === "application/pdf") return "📕"; if (x.mime?.includes("zip") || x.mime?.includes("compressed")) return "🗜️"; if (x.mime?.includes("text")) return "📝"; return "📄" }
+        function renderStorage() {
+            const s = S.storage; if (!s) return;
+            const cats = [['images', 'Images', '#34d399'], ['videos', 'Vidéos', '#fb7185'], ['audio', 'Audio', '#c084fc'], ['documents', 'Documents', '#60a5fa'], ['archives', 'Archives', '#fb923c'], ['other', 'Autres', '#94a3b8']];
+            const w = v => s.quota ? v / s.quota * 100 : 0;
+            $('#stUsed').textContent = fmt(s.used) + ' utilisés';
+            $('#stQuota').textContent = 'sur ' + fmt(s.quota);
+            $('#stBar').innerHTML = cats.map(([k, l, c]) => s.breakdown[k] > 0 ? `<i style="width:${w(s.breakdown[k])}%;background:${c}" title="${l} · ${fmt(s.breakdown[k])}"></i>` : '').join('') +
+                (s.trash > 0 ? `<i class="trash" style="width:${w(s.trash)}%" title="Corbeille · ${fmt(s.trash)}"></i>` : '');
+            $('#stLegend').innerHTML = cats.filter(([k]) => s.breakdown[k] > 0).map(([k, l, c]) => `<span style="--c:${c}">${l} ${fmt(s.breakdown[k])}</span>`).join('') || '<span style="--c:var(--line2)">Aucun fichier pour le moment</span>';
+            $('#storage').classList.toggle('warn', s.percent > 90);
+        }
+
+        function renderHead() {
+            const el = $('#crumbs'); let html;
+            if (S.search) html = `<span class="crumb cur">Résultats pour « ${esc(S.search)} »</span>`;
+            else if (S.view === 'files') {
+                const ch = chain(S.current);
+                html = `<button class="crumb ${ch.length ? '' : 'cur'}" data-go="" data-drop="root">Mes fichiers</button>` +
+                    ch.map((f, i) => `<span class="sep">${I('chevR')}</span><button class="crumb ${i === ch.length - 1 ? 'cur' : ''}" data-go="${f.id}" data-drop="${f.id}">${esc(f.name)}</button>`).join('');
+            } else html = `<span class="crumb cur">${VIEWS[S.view].label}</span>`;
+            el.innerHTML = html;
+
+            const n = S.view === 'shared' ? S.shares.length : S.items.length;
+            let sub = S.loading ? '' : plural(n, S.view === 'shared' ? 'lien actif' : 'élément', S.view === 'shared' ? 'liens actifs' : 'éléments');
+            if (!S.loading && S.view !== 'shared') { const total = S.items.reduce((a, x) => a + (x.size || 0), 0); if (total) sub += ' · ' + fmt(total) }
+            if (S.view === 'trash' && S.storage?.trashTtl) sub += ` · suppression définitive après ${Math.round(S.storage.trashTtl / 86400000)} jours`;
+            $('#subtitle').textContent = sub;
+
+            $('#sort').classList.toggle('hidden', S.view !== 'files');
+            $('#sort').value = `${S.sort}-${S.dir}`;
+            $('#layoutSeg').classList.toggle('hidden', S.view === 'shared');
+            $$('#layoutSeg button').forEach(b => b.classList.toggle('on', b.dataset.layout === S.layout));
+            const et = $('#emptyTrash'); et.classList.toggle('hidden', !(S.view === 'trash' && S.items.length)); et.innerHTML = I('trash') + 'Vider la corbeille';
+        }
+
+        const EMPTY = {
+            files: ['folder', 'Ce dossier est vide', 'Glissez-déposez des fichiers ici ou créez votre premier dossier.'],
+            recent: ['clock', 'Rien de récent', 'Les fichiers que vous ajoutez ou modifiez apparaîtront ici.'],
+            starred: ['star', 'Aucun favori', 'Cliquez sur l’étoile d’un élément pour le retrouver ici en un clin d’œil.'],
+            trash: ['trash', 'La corbeille est vide', 'Les éléments supprimés restent récupérables ici.'],
+            shared: ['link', 'Aucun lien actif', 'Partagez un fichier pour générer un lien de téléchargement temporaire.'],
+            search: ['search', 'Aucun résultat', 'Essayez un autre mot-clé ou vérifiez l’orthographe.']
+        };
+        function emptyHTML() {
+            const [ic, title, text] = EMPTY[S.search ? 'search' : S.view];
+            const btns = S.view === 'files' && !S.search ? `<div class="btns"><button class="btn primary" data-act="upload">${I('upload')}Envoyer des fichiers</button><button class="btn" data-act="newfolder">${I('folderPlus')}Nouveau dossier</button></div>` : '';
+            return `<div class="empty"><div><div class="empty-orb">${I(ic)}</div><h3>${title}</h3><p>${text}</p>${btns}</div></div>`;
+        }
+
+        function itemHTML(x, i) {
+            const k = kind(x), K = KIND[k], trash = S.view === 'trash';
+            const thumb = k === 'image' && !trash && x.size < 2 * 1048576 ? `<img src="/api/preview/${x.id}" loading="lazy" decoding="async" alt="" onerror="this.remove()">` : '';
+            const showPath = S.search || S.view === 'recent' || S.view === 'starred';
+            const acts = trash
+                ? `<button class="keep restore" data-act="restore" title="Restaurer">${I('restore')}</button><button class="keep purge" data-act="purge" title="Supprimer définitivement">${I('x')}</button>`
+                : `<button class="${x.starred ? 'starred keep' : ''}" data-act="star" title="Favori">${I('star')}</button><button class="more-only" data-act="more" title="Plus d’options">${I('more')}</button>`;
+            return `<div class="item ${x.type}" data-id="${x.id}" draggable="${!trash}" style="--k:${K.c}">
+        <button class="check" data-act="check" aria-label="Sélectionner">${I('check')}</button>
+        <div class="thumb"><div class="ico-big">${I(K.icon)}</div>${thumb}</div>
+        <div class="info"><div class="name">${esc(x.name)}</div>
+            <div class="meta">${x.type === 'folder' ? 'Dossier' : fmt(x.size) + ' · ' + ago(trash ? x.trashedAt : x.updatedAt)}</div>
+            ${showPath ? `<div class="path">${I('folder')}${esc(pathOf(x))}</div>` : ''}</div>
+        <div class="cdate">${ago(trash ? x.trashedAt : x.updatedAt)}</div><div class="csize">${x.type === 'folder' ? '—' : fmt(x.size)}</div>
+        <div class="acts">${acts}</div></div>`;
+        }
 
         function renderItems() {
-            const area = $("items"); area.className = view === "grid" ? "file-grid" : "file-list"; area.innerHTML = "";
-            if (!items.length) { area.innerHTML = '<div class="empty"><div><div class="empty-icon">' + (search ? "🔎" : "📂") + '</div><div>' + (search ? "Aucun résultat" : "Ce dossier est vide") + '</div></div></div>'; updateStatus(); return }
-            if (view === "list") { const h = document.createElement("div"); h.className = "list-header"; h.innerHTML = "<span></span><span>Nom</span><span>Taille</span><span>Modifié</span><span></span>"; area.appendChild(h) }
-            items.forEach(renderItem); updateStatus()
-        }
-
-        function renderItem(x) {
-            const el = document.createElement("div"); el.className = "file" + (selected.has(x.id) ? " selected" : ""); el.dataset.id = x.id; el.draggable = true;
-            el.innerHTML = '<div class="file-icon">' + icon(x) + '</div><div class="file-name"></div><div class="file-meta"></div><div class="file-actions"></div>';
-            el.querySelector(".file-name").textContent = x.name;
-            el.querySelector(".file-meta").textContent = x.type === "folder" ? "Dossier" : fmt(x.size) + (view === "list" ? "" : " · " + fmtDate(x.updatedAt));
-            if (view === "list") el.querySelector(".file-meta").textContent = x.type === "folder" ? "Dossier" : fmt(x.size);
-            const actions = el.querySelector(".file-actions");
-            if (x.type === "file") {
-                actions.innerHTML = '<button class="mini" title="Aperçu">👁</button><button class="mini" title="Partager">🔗</button><button class="mini" title="Plus">⋮</button>';
-                actions.children[0].onclick = e => { e.stopPropagation(); preview(x) };
-                actions.children[1].onclick = e => { e.stopPropagation(); share(x) };
-                actions.children[2].onclick = e => { e.stopPropagation(); openContext(e, x) };
-            } else {
-                actions.innerHTML = '<button class="mini" title="Ouvrir">›</button>';
-                actions.children[0].onclick = e => { e.stopPropagation(); openFolder(x) };
+            const box = $('#items'); $('#fab').classList.toggle('hidden', S.view === 'trash' || S.view === 'shared');
+            if (S.loading && !(S.view === 'shared' ? S.shares : S.items).length) { box.className = 'items grid'; box.innerHTML = Array.from({ length: 10 }, () => '<div class="skel"></div>').join(''); return }
+            if (S.view === 'shared') {
+                box.className = 'items shares';
+                box.innerHTML = S.shares.filter(s => s.file).map((s, i) => {
+                    const K = KIND[kind(s.file)];
+                    return `<div class="share-row" data-sid="${s.id}" style="--k:${K.c}"><div class="ico-big">${I(K.icon)}</div>
+                <div class="grow"><div class="name">${esc(s.file.name)}</div><div class="meta">${until(s.expiresAt)} · ${plural(s.downloads || 0, 'téléchargement')}</div></div>
+                <div class="row-actions"><button class="iconbtn sm" data-act="copy" title="Copier le lien">${I('copy')}</button><button class="iconbtn sm" data-act="open" title="Ouvrir la page">${I('open')}</button><button class="iconbtn sm" data-act="extend" title="Prolonger">${I('clock')}</button><button class="iconbtn sm danger" data-act="revoke" title="Révoquer">${I('trash')}</button></div></div>`;
+                }).join('') || emptyHTML();
+                return;
             }
-            el.addEventListener("click", e => handleSelect(e, x));
-            el.addEventListener("dblclick", () => x.type === "folder" ? openFolder(x) : preview(x));
-            el.addEventListener("contextmenu", e => { e.preventDefault(); if (!selected.has(x.id)) { selected.clear(); selected.add(x.id); renderItems(); updateActions() } openContext(e, x) });
-            el.addEventListener("dragstart", e => { el.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", JSON.stringify([...selected.has(x.id) ? selected : [x.id]])) });
-            el.addEventListener("dragend", () => el.classList.remove("dragging"));
-            el.addEventListener("dragover", e => { if (x.type === "folder") { e.preventDefault(); el.style.borderColor = "#5865f2" } });
-            el.addEventListener("dragleave", () => el.style.borderColor = "");
-            el.addEventListener("drop", async e => { e.preventDefault(); el.style.borderColor = ""; if (x.type !== "folder") return; try { const ids = JSON.parse(e.dataTransfer.getData("text/plain")); await moveIds(ids, x.id); load() } catch (err) { alert(err.message) } });
-            $("items").appendChild(el)
+            box.className = 'items ' + S.layout;
+            if (!S.items.length) { box.innerHTML = emptyHTML(); return }
+            const head = S.layout === 'list' ? '<div class="lh"><span></span><span></span><span>Nom</span><span>' + (S.view === 'trash' ? 'Supprimé' : 'Modifié') + '</span><span>Taille</span><span></span></div>' : '';
+            box.innerHTML = head + S.items.map(itemHTML).join('');
         }
 
-        function handleSelect(e, x) {
-            if (e.ctrlKey || e.metaKey) { selected.has(x.id) ? selected.delete(x.id) : selected.add(x.id) }
-            else if (e.shiftKey && selected.size) { const ids = items.map(i => i.id), last = [...selected].pop(), a = ids.indexOf(last), b = ids.indexOf(x.id), from = Math.min(a, b), to = Math.max(a, b); selected = new Set(ids.slice(from, to + 1)) }
-            else { selected.clear(); selected.add(x.id) }
-            renderItems(); updateActions()
+        function syncSel() { $$('#items .item').forEach(el => el.classList.toggle('selected', S.sel.has(el.dataset.id))); renderBulk() }
+
+        function renderBulk() {
+            const n = S.sel.size, bar = $('#bulk'); bar.classList.toggle('show', n > 0);
+            if (!n) return;
+            const xs = selItems(), v = S.view;
+            const b = (act, icon, label, cls = '') => `<button class="b ${cls}" data-act="${act}" title="${label}">${I(icon)}<span>${label}</span></button>`;
+            bar.innerHTML = `<div class="count"><b>${n}</b> sélectionné${n > 1 ? 's' : ''}</div><div class="vsep"></div>` +
+                (v === 'trash' ? b('restore', 'restore', 'Restaurer') + b('purge', 'trash', 'Supprimer', 'danger')
+                    : b('download', 'download', 'Télécharger') + (n === 1 && xs[0]?.type === 'file' ? b('share', 'link', 'Partager') : '') +
+                    b('star', 'star', xs.every(x => x.starred) ? 'Retirer des favoris' : 'Favori') + b('move', 'move', 'Déplacer') + b('copy', 'copy', 'Copier') + b('trash', 'trash', 'Corbeille', 'danger')) +
+                `<div class="vsep"></div><button class="b" data-act="clear" title="Désélectionner (Échap)">${I('x')}</button>`;
         }
 
-        function backgroundClick(e) { if (e.target.id === "fileArea" || e.target.id === "items") { selected.clear(); renderItems(); updateActions(); closeContext() } }
-
-        function openFolder(x) { pathStack.push(x); current = x.id; search = ""; $("search").value = ""; $("searchClear").classList.add("hidden"); load() }
-        function goHome() { current = null; pathStack = []; search = ""; trashMode = false; sharesMode = false; $("search").value = ""; $("searchClear").classList.add("hidden"); load() }
-        function goUp() { if (trashMode || sharesMode) return; if (!pathStack.length) return; pathStack.pop(); current = pathStack.length ? pathStack[pathStack.length - 1].id : null; load() }
-
-        async function storage() { try { const d = await api("/api/storage"); $("storageText").textContent = fmt(d.used) + " / " + fmt(d.quota); $("storageBar").style.width = d.percent + "%" } catch { } }
-
-        function updateStatus() { $("statusText").textContent = items.length + " élément" + (items.length > 1 ? "s" : ""); $("selectionText").textContent = selected.size ? selected.size + " sélectionné" + (selected.size > 1 ? "s" : "") : "" }
-
-        function updateActions() {
-            const has = selected.size > 0; $("copyBtn").disabled = !has; $("moveBtn").disabled = !has; $("trashBtn").disabled = !has; $("pasteBtn").disabled = !clipboard.length;
+        /* ============ toasts, menus, modales ============ */
+        function toast(msg, type = 'info', opts = {}) {
+            const t = document.createElement('div'); t.className = 'toast ' + type;
+            t.innerHTML = I(type === 'error' ? 'alert' : type === 'ok' ? 'check' : 'info') + `<span>${esc(msg)}</span>` + (opts.action ? `<button>${esc(opts.action.label)}</button>` : '');
+            const kill = () => { t.classList.add('out'); setTimeout(() => t.remove(), 300) };
+            if (opts.action) t.querySelector('button').onclick = () => { kill(); run(opts.action.fn) };
+            $('#toasts').appendChild(t); setTimeout(kill, opts.ms || (opts.action ? 6000 : 3400));
         }
 
-        function clearSearch() { search = ""; $("search").value = ""; $("searchClear").classList.add("hidden"); load() }
-        function searchFiles() { search = $("search").value.trim(); $("searchClear").classList.toggle("hidden", !search); clearTimeout(window.searchTimer); window.searchTimer = setTimeout(load, 250) }
-        function changeSort() { const [s, d] = $("sortSelect").value.split("-"); sort = s; direction = d; load() }
-        function setView(v) { view = v; $("gridViewBtn").classList.toggle("active", v === "grid"); $("listViewBtn").classList.toggle("active", v === "list"); renderItems() }
+        function closeMenu() { $$('.menu').forEach(m => m.remove()) }
+        function menu(x, y, entries) {
+            closeMenu();
+            const m = document.createElement('div'); m.className = 'menu';
+            m.innerHTML = entries.map((en, i) => en === '-' ? '<div class="sep"></div>' :
+                `<button data-i="${i}" class="${en.danger ? 'danger' : ''}">${I(en.icon)}<span>${esc(en.label)}</span>${en.kbd ? `<kbd>${en.kbd}</kbd>` : ''}</button>`).join('');
+            document.body.appendChild(m);
+            const r = m.getBoundingClientRect();
+            m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
+            m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+            m.onclick = e => { const b = e.target.closest('button'); if (!b) return; closeMenu(); run(entries[b.dataset.i].fn) };
+        }
+        document.addEventListener('pointerdown', e => { if (!e.target.closest('.menu')) closeMenu() });
+        window.addEventListener('scroll', () => { if (document.querySelector('.menu')) closeMenu() }, { capture: true, passive: true });
 
-        async function newFolder() { const name = prompt("Nom du dossier"); if (!name) return; try { await api("/api/folders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, parent: current }) }); load() } catch (e) { alert(e.message) } }
+        function modal({ title, body, actions = [], wide = false, onClose, guard }) {
+            closeModal(true);
+            const el = document.createElement('div'); el.className = 'backdrop';
+            el.innerHTML = `<div class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true"><div class="m-head"><h3>${esc(title)}</h3><button class="iconbtn sm" data-close aria-label="Fermer">${I('x')}</button></div><div class="m-body">${body}</div>${actions.length ? '<div class="m-foot"></div>' : ''}</div>`;
+            document.body.appendChild(el);
+            let closed = false;
+            const m = {
+                el, close(v = null) {
+                    if (closed || (guard && !guard())) return;
+                    closed = true; S.modal = null; el.style.opacity = 0; el.style.transition = '.2s'; setTimeout(() => el.remove(), 200); onClose?.(v);
+                }
+            };
+            const foot = $('.m-foot', el);
+            actions.forEach(a => { const b = document.createElement('button'); b.className = 'btn ' + (a.primary ? 'primary' : a.danger ? 'danger' : ''); b.innerHTML = a.text; b.onclick = () => run(() => a.fn(b)); foot.appendChild(b) });
+            el.addEventListener('mousedown', e => { if (e.target === el) m.close(null) });
+            $('[data-close]', el).onclick = () => m.close(null);
+            S.modal = m; return m;
+        }
+        function closeModal(silent) { S.modal?.close(null) }
 
-        async function rename(x) { const name = prompt("Nouveau nom", x.name); if (!name || name === x.name) return; try { await api("/api/files/" + x.id, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }); load() } catch (e) { alert(e.message) } }
+        function askText({ title, label = '', value = '', ok = 'Valider', placeholder = '' }) {
+            return new Promise(res => {
+                const m = modal({
+                    title, body: `${label ? `<label class="lbl" for="askInput">${esc(label)}</label>` : ''}<input class="field" id="askInput" placeholder="${esc(placeholder)}" autocomplete="off" spellcheck="false">`,
+                    actions: [{ text: 'Annuler', fn: () => m.close(null) }, { text: ok, primary: true, fn: () => m.close($('#askInput').value.trim() || null) }], onClose: res
+                });
+                const inp = $('#askInput'); inp.value = value; inp.focus();
+                const dot = value.lastIndexOf('.'); inp.setSelectionRange(0, dot > 0 ? dot : value.length);
+                inp.onkeydown = e => { if (e.key === 'Enter') m.close(inp.value.trim() || null) };
+            });
+        }
+        function askConfirm({ title, text, ok = 'Confirmer', danger = false }) {
+            return new Promise(res => {
+                const m = modal({
+                    title, body: `<p class="muted">${esc(text)}</p>`,
+                    actions: [{ text: 'Annuler', fn: () => m.close(false) }, { text: ok, primary: !danger, danger, fn: () => m.close(true) }], onClose: v => res(v === true)
+                });
+            });
+        }
+        function askDays({ title, text, ok = 'Valider', def = 7 }) {
+            return new Promise(res => {
+                let days = def;
+                const m = modal({
+                    title, body: `<p class="muted">${esc(text)}</p><div class="chips" id="chips">${[[1, '1 jour'], [7, '7 jours'], [30, '30 jours'], [90, '90 jours'], [365, '1 an']].map(([d, l]) => `<button class="chip ${d === def ? 'on' : ''}" data-d="${d}">${l}</button>`).join('')}</div>`,
+                    actions: [{ text: 'Annuler', fn: () => m.close(null) }, { text: ok, primary: true, fn: () => m.close(days) }], onClose: res
+                });
+                $('#chips').onclick = e => { const c = e.target.closest('.chip'); if (!c) return; days = Number(c.dataset.d); $$('.chip').forEach(x => x.classList.toggle('on', x === c)) };
+            });
+        }
 
-        async function trashSelected() { const ids = [...selected]; if (!ids.length) return; if (!confirm("Déplacer " + ids.length + " élément(s) vers la corbeille ?")) return; try { await api("/api/trash", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) }); selected.clear(); load() } catch (e) { alert(e.message) } }
+        /* ============ actions ============ */
+        async function refresh(msg) { if (msg) toast(msg, 'ok'); await load() }
+        const targetIds = xs => xs.map(x => x.id);
 
-        async function moveIds(ids, parent) { await api("/api/files/move", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, parent }) }) }
-        async function moveSelected() { if (!selected.size) return; openMoveDialog([...selected]) }
+        async function newFolder() {
+            const name = await askText({ title: 'Nouveau dossier', label: 'Nom du dossier', value: 'Sans titre', ok: 'Créer' }); if (!name) return;
+            await api('/api/folders', J('POST', { name, parent: S.current })); refresh('Dossier créé');
+        }
+        async function newTextFile() {
+            const name = await askText({ title: 'Nouveau fichier texte', label: 'Nom du fichier', value: 'note.txt', ok: 'Créer' }); if (!name) return;
+            const { item } = await api('/api/text', J('POST', { name, parent: S.current, content: '' }));
+            await load(); const x = byId(item.id) || item; openEditor(x);
+        }
+        async function rename(x) {
+            const name = await askText({ title: 'Renommer', label: 'Nouveau nom', value: x.name, ok: 'Renommer' }); if (!name || name === x.name) return;
+            await api('/api/files/' + x.id, J('PATCH', { name })); refresh('Élément renommé');
+        }
+        async function toggleStar(xs) {
+            const starred = !xs.every(x => x.starred);
+            await api('/api/files/star', J('POST', { ids: targetIds(xs), starred }));
+            xs.forEach(x => x.starred = starred);
+            if (S.view === 'starred' && !starred) return load();
+            syncStars(); toast(starred ? 'Ajouté aux favoris' : 'Retiré des favoris', 'ok'); renderBulk();
+        }
+        function syncStars() { $$('#items .item').forEach(el => { const x = byId(el.dataset.id); const b = $('[data-act=star]', el); if (b && x) { b.classList.toggle('starred', !!x.starred); b.classList.toggle('keep', !!x.starred) } }) }
 
-        async function copySelected() { clipboard = [...selected]; clipboardMode = "copy"; updateActions(); toast(clipboard.length + " élément(s) copié(s)") }
+        async function trashItems(xs) {
+            if (!xs.length) return; const ids = targetIds(xs);
+            await api('/api/trash', J('POST', { ids })); S.sel.clear();
+            toast(plural(xs.length, 'élément déplacé', 'éléments déplacés') + ' dans la corbeille', 'ok', { action: { label: 'Annuler', fn: () => restore(ids) } });
+            await load();
+        }
+        async function restore(ids) { await api('/api/trash/restore', J('POST', { ids })); S.sel.clear(); refresh('Élément restauré'); }
+        async function purge(ids) {
+            if (!await askConfirm({ title: 'Supprimer définitivement ?', text: `${plural(ids.length, 'élément sera supprimé', 'éléments seront supprimés')} pour toujours. Cette action est irréversible.`, ok: 'Supprimer', danger: true })) return;
+            await api('/api/trash', J('DELETE', { ids })); S.sel.clear(); refresh('Supprimé définitivement');
+        }
+        async function emptyTrash() {
+            if (!await askConfirm({ title: 'Vider la corbeille ?', text: 'Tous les éléments de la corbeille seront supprimés définitivement.', ok: 'Vider la corbeille', danger: true })) return;
+            await api('/api/trash', J('DELETE', { all: true })); S.sel.clear(); refresh('Corbeille vidée');
+        }
 
-        async function pasteItems() { if (!clipboard.length) return; try { await api("/api/files/copy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: clipboard, parent: current }) }); clipboard = []; clipboardMode = null; updateActions(); load() } catch (e) { alert(e.message) } }
+        async function moveIds(ids, parent) { await api('/api/files/move', J('POST', { ids, parent })); S.sel.clear(); refresh('Déplacé vers « ' + (parent ? folderName(parent) || 'dossier' : 'Mes fichiers') + ' »') }
+        function moveDialog(ids) {
+            const ex = new Set(), kids = new Map();
+            S.folders.forEach(f => { const k = f.parent || 'root'; if (!kids.has(k)) kids.set(k, []); kids.get(k).push(f) });
+            const ban = id => { ex.add(id); (kids.get(id) || []).forEach(c => ban(c.id)) };
+            ids.forEach(id => S.fmap.has(id) && ban(id));
+            const srt = a => a.sort((p, q) => p.name.localeCompare(q.name, 'fr', { numeric: true }));
+            const row = (f, d) => `<button class="tr" data-id="${f.id}" style="--d:${d}">${I('folder')}<span>${esc(f.name)}</span></button>` + srt(kids.get(f.id) || []).filter(c => !ex.has(c.id)).map(c => row(c, d + 1)).join('');
+            let dest = '';
+            const m = modal({
+                title: 'Déplacer vers…', body: `<p class="muted">Choisissez le dossier de destination.</p><div class="tree" id="tree"><button class="tr on" data-id="" style="--d:0">${I('hdd')}<span>Mes fichiers</span></button>${srt(kids.get('root') || []).filter(f => !ex.has(f.id)).map(f => row(f, 1)).join('')}</div>`,
+                actions: [{ text: 'Annuler', fn: () => m.close() }, { text: 'Déplacer ici', primary: true, fn: async () => { m.close(); await moveIds(ids, dest || null) } }]
+            });
+            $('#tree').onclick = e => { const b = e.target.closest('.tr'); if (!b) return; dest = b.dataset.id; $$('#tree .tr').forEach(x => x.classList.toggle('on', x === b)) };
+        }
 
-        async function share(x) { try { const d = await api("/api/share/" + x.id, { method: "POST" }); const url = location.origin + d.url; await navigator.clipboard?.writeText(url); toast("Lien copié dans le presse-papiers") } catch (e) { alert(e.message) } }
+        function setClip(mode) { const xs = selItems(); if (!xs.length) return; S.clip = { ids: targetIds(xs), mode }; toast(plural(xs.length, 'élément') + (mode === 'cut' ? ' coupé' : ' copié') + (xs.length > 1 ? 's' : ''), 'ok') }
+        async function paste() {
+            if (!S.clip.ids.length || S.view !== 'files') return;
+            const { ids, mode } = S.clip;
+            if (mode === 'cut') { await api('/api/files/move', J('POST', { ids, parent: S.current })); S.clip = { ids: [], mode: null }; refresh('Éléments déplacés') }
+            else { await api('/api/files/copy', J('POST', { ids, parent: S.current })); refresh('Éléments collés') }
+        }
 
+        function download(xs) {
+            const a = document.createElement('a');
+            a.href = xs.length === 1 && xs[0].type === 'file' ? '/api/download/' + xs[0].id : '/api/zip?ids=' + xs.map(x => x.id).join(',');
+            a.download = ''; document.body.appendChild(a); a.click(); a.remove();
+        }
+
+        async function share(x) {
+            const days = await askDays({ title: 'Partager « ' + x.name + ' »', text: 'Toute personne disposant du lien pourra télécharger ce fichier jusqu’à son expiration.', ok: 'Créer le lien' }); if (!days) return;
+            const d = await api('/api/share/' + x.id, J('POST', { days })); const url = location.origin + d.url;
+            const copied = await copyText(url);
+            const m = modal({
+                title: 'Lien prêt à partager', body: `<p class="muted">${copied ? 'Le lien a été copié dans votre presse-papiers. ' : ''}${until(d.expiresAt)}.</p><div class="copy-row"><input class="field" id="shareUrl" readonly><button class="btn primary" id="shareCopy">${I('copy')}Copier</button></div>`,
+                actions: [{ text: 'Terminé', fn: () => m.close() }]
+            });
+            const inp = $('#shareUrl'); inp.value = url; inp.onfocus = () => inp.select();
+            $('#shareCopy').onclick = async () => toast(await copyText(url) ? 'Lien copié' : 'Copie impossible — sélectionnez le lien manuellement', 'ok');
+            if (S.view === 'shared') load();
+        }
+
+        /* ---- éditeur de texte ---- */
+        async function openEditor(x) {
+            const { content } = await api('/api/text/' + x.id);
+            let orig = content, dirty = false;
+            const m = modal({
+                title: x.name, wide: true, guard: () => !dirty || confirm('Des modifications ne sont pas enregistrées. Quitter quand même ?'),
+                body: `<div class="editor"><textarea id="ed" spellcheck="false" aria-label="Contenu du fichier"></textarea><div class="ed-foot"><span id="edInfo"></span><span id="edState"></span></div></div>`,
+                actions: [{ text: I('download') + 'Télécharger', fn: () => download([x]) }, { text: 'Fermer', fn: () => m.close() }, { text: I('check') + 'Enregistrer', primary: true, fn: save }]
+            });
+            const ed = $('#ed'); ed.value = content; ed.focus(); ed.setSelectionRange(0, 0);
+            const info = () => { const v = ed.value; $('#edInfo').textContent = `${v ? v.split('\n').length : 0} lignes · ${v.length} caractères`; dirty = ed.value !== orig; $('#edState').innerHTML = dirty ? '<span class="dirty">● Modifications non enregistrées</span>' : 'Enregistré' };
+            async function save() { await api('/api/text/' + x.id, J('PUT', { content: ed.value })); orig = ed.value; info(); toast('Fichier enregistré', 'ok'); load() }
+            ed.oninput = info; info();
+            ed.onkeydown = e => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); run(save) }
+                if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, '  ') }
+                if (e.key === 'Escape') { e.stopPropagation(); m.close() }
+            };
+        }
+
+        /* ---- visionneuse ---- */
+        const LB_KINDS = ['image', 'video', 'audio', 'pdf'];
         function preview(x) {
-            if (!x.mime) return;
-            let body = "";
-            if (x.mime.startsWith("image/")) body = '<img class="preview-image" src="/api/preview/' + x.id + '">';
-            else if (x.mime.startsWith("video/")) body = '<video class="preview-video" src="/api/preview/' + x.id + '" controls autoplay></video>';
-            else if (x.mime.startsWith("audio/")) body = '<audio class="preview-audio" src="/api/preview/' + x.id + '" controls autoplay></audio>';
-            else if (x.mime === "application/pdf") body = '<iframe class="preview-frame" src="/api/preview/' + x.id + '"></iframe>';
-            else body = '<div style="text-align:center;padding:40px">Aucun aperçu disponible.<br><br><button class="btn" onclick="location.href=\'/api/download/' + x.id + '\'">Télécharger</button></div>';
-            modal("Aperçu — " + x.name, body, []);
+            if (x.type === 'folder') return go('files', x.id);
+            if (S.view === 'trash') return toast('Restaurez ce fichier pour l’ouvrir.', 'info');
+            if (x.editable) return run(() => openEditor(x));
+            if (!LB_KINDS.includes(kind(x))) return toast('Aucun aperçu pour ce type de fichier — téléchargement lancé.', 'info'), download([x]);
+            const list = S.items.filter(i => i.type === 'file' && LB_KINDS.includes(kind(i)));
+            S.lb = { list, i: Math.max(0, list.findIndex(v => v.id === x.id)) };
+            $('#lightbox').classList.remove('hidden'); drawLB();
+        }
+        function drawLB() {
+            const { list, i } = S.lb, x = list[i], k = kind(x), src = '/api/preview/' + x.id, st = $('#lbStage');
+            $('#lbTitle').textContent = x.name; $('#lbMeta').textContent = `${i + 1} / ${list.length} · ${fmt(x.size)}`;
+            st.className = 'lb-stage';
+            st.innerHTML = k === 'image' ? `<img src="${src}" alt="">` : k === 'video' ? `<video src="${src}" controls autoplay></video>` :
+                k === 'audio' ? `<div class="audio-card">${I('music')}<b>${esc(x.name)}</b><audio src="${src}" controls autoplay></audio></div>` : `<iframe src="${src}" title="${esc(x.name)}"></iframe>`;
+            if (k === 'image') { const im = $('img', st); im.onclick = () => { im.classList.toggle('zoom'); st.classList.toggle('scroll') } }
+            $('#lbPrev').classList.toggle('hidden', list.length < 2); $('#lbNext').classList.toggle('hidden', list.length < 2);
+        }
+        const navLB = d => { if (!S.lb || S.lb.list.length < 2) return; S.lb.i = (S.lb.i + d + S.lb.list.length) % S.lb.list.length; drawLB() };
+        function closeLB() { $('#lightbox').classList.add('hidden'); $('#lbStage').innerHTML = ''; S.lb = null }
+
+        /* ---- menus contextuels ---- */
+        function itemMenu(e, x) {
+            if (!S.sel.has(x.id)) { S.sel = new Set([x.id]); S.anchor = x.id; syncSel() }
+            const xs = selItems(), one = xs.length === 1, ent = [];
+            if (S.view === 'trash') ent.push({ label: 'Restaurer', icon: 'restore', fn: () => restore(targetIds(xs)) }, '-', { label: 'Supprimer définitivement', icon: 'trash', danger: true, fn: () => purge(targetIds(xs)) });
+            else {
+                if (one) ent.push({ label: x.type === 'folder' ? 'Ouvrir' : x.editable ? 'Modifier' : 'Aperçu', icon: x.type === 'folder' ? 'open' : x.editable ? 'edit' : 'eye', fn: () => preview(x) });
+                ent.push({ label: xs.length > 1 || x.type === 'folder' ? 'Télécharger (.zip)' : 'Télécharger', icon: 'download', fn: () => download(xs) });
+                if (one && x.type === 'file') ent.push({ label: 'Créer un lien de partage', icon: 'link', fn: () => share(x) });
+                ent.push({ label: xs.every(i => i.starred) ? 'Retirer des favoris' : 'Ajouter aux favoris', icon: 'star', fn: () => toggleStar(xs) }, '-');
+                if (one) ent.push({ label: 'Renommer', icon: 'edit', kbd: 'F2', fn: () => rename(x) });
+                ent.push({ label: 'Copier', icon: 'copy', kbd: 'Ctrl C', fn: () => setClip('copy') }, { label: 'Couper', icon: 'scissors', kbd: 'Ctrl X', fn: () => setClip('cut') }, { label: 'Déplacer vers…', icon: 'move', fn: () => moveDialog(targetIds(xs)) }, '-',
+                    { label: 'Mettre à la corbeille', icon: 'trash', danger: true, kbd: 'Suppr', fn: () => trashItems(xs) });
+            }
+            menu(e.clientX, e.clientY, ent);
+        }
+        function newMenu(x, y) {
+            menu(x, y, [{ label: 'Nouveau dossier', icon: 'folderPlus', fn: newFolder }, { label: 'Nouveau fichier texte', icon: 'filePlus', fn: newTextFile }, '-', { label: 'Envoyer des fichiers', icon: 'upload', fn: () => $('#fileInput').click() }]);
+        }
+        function bgMenu(e) {
+            const ent = [{ label: 'Nouveau dossier', icon: 'folderPlus', fn: newFolder }, { label: 'Nouveau fichier texte', icon: 'filePlus', fn: newTextFile }, { label: 'Envoyer des fichiers', icon: 'upload', fn: () => $('#fileInput').click() }];
+            if (S.clip.ids.length) ent.push('-', { label: 'Coller', icon: 'paste', kbd: 'Ctrl V', fn: paste });
+            ent.push('-', { label: 'Actualiser', icon: 'refresh', fn: load }); menu(e.clientX, e.clientY, ent);
         }
 
-        function openContext(e, x) {
-            closeContext(); const c = $("context"); c.innerHTML = "";
-            const add = (label, fn, cls = "") => { const b = document.createElement("button"); b.textContent = label; b.className = cls; b.onclick = () => { closeContext(); fn() }; c.appendChild(b) };
-            if (x.type === "folder") add("📂 Ouvrir", () => openFolder(x)); else add("👁 Aperçu", () => preview(x));
-            add("✏️ Renommer", () => rename(x));
-            add("📋 Copier", () => { selected = new Set([x.id]); copySelected() });
-            add("↗ Déplacer", () => { selected = new Set([x.id]); openMoveDialog([x.id]) });
-            if (x.type === "file") add("🔗 Créer un lien", () => share(x));
-            const sep = document.createElement("div"); sep.className = "context-sep"; c.appendChild(sep);
-            add("🗑 Supprimer", () => { selected = new Set([x.id]); trashSelected() }, "danger");
-            c.style.display = "block"; c.style.left = Math.min(e.clientX, innerWidth - 215) + "px"; c.style.top = Math.min(e.clientY, innerHeight - c.offsetHeight - 10) + "px";
+        /* ============ envois ============ */
+        const Q = { jobs: [], running: 0 };
+        const uploadTarget = () => S.view === 'files' ? S.current : null;
+        function enqueue(files, parent) {
+            files = [...files].filter(f => f.size >= 0); if (!files.length) return;
+            $('#uploads').classList.remove('hidden', 'min');
+            for (const file of files) {
+                const el = document.createElement('div'); el.className = 'u-job'; el.style.setProperty('--k', KIND[kind({ type: 'file', name: file.name, mime: file.type })].c);
+                el.innerHTML = `<div class="ico-big">${I(KIND[kind({ type: 'file', name: file.name, mime: file.type })].icon)}</div><div class="grow"><div class="name"></div><div class="bar"><i></i></div><div class="meta">En attente…</div></div><button class="iconbtn sm" title="Annuler">${I('x')}</button>`;
+                $('.name', el).textContent = file.name; $('#uList').appendChild(el);
+                const job = { file, parent, el, state: 'wait' };
+                $('button', el).onclick = () => { if (job.state === 'run') job.xhr.abort(); else if (job.state === 'wait') finish(job, 'fail', 'Annulé'); };
+                Q.jobs.push(job);
+            }
+            pump(); uTitle();
         }
-        function closeContext() { $("context").style.display = "none" }
-        document.addEventListener("click", e => { if (!e.target.closest(".context")) closeContext() });
-
-        function modal(title, body, buttons) {
-            $("modalRoot").innerHTML = '<div class="modal-backdrop" id="modalBackdrop"><div class="modal"><div class="modal-head">' + title + '</div><div class="modal-body">' + body + '</div><div class="modal-foot" id="modalFoot"></div></div></div>';
-            const foot = $("modalFoot"); buttons.forEach(b => { const el = document.createElement("button"); el.className = b.class || "btn secondary"; el.textContent = b.text; el.onclick = b.fn; foot.appendChild(el) });
-            $("modalBackdrop").onclick = e => { if (e.target.id === "modalBackdrop") closeModal() }
+        function uTitle() {
+            const total = Q.jobs.length, done = Q.jobs.filter(j => j.state === 'done').length, bad = Q.jobs.filter(j => j.state === 'fail').length;
+            $('#uTitle').textContent = Q.running || Q.jobs.some(j => j.state === 'wait') ? `Envoi en cours · ${done}/${total}` : bad ? `Terminé · ${plural(bad, 'échec')}` : `Envoi terminé · ${plural(done, 'fichier')}`;
         }
-        function closeModal() { $("modalRoot").innerHTML = "" }
-
-        async function openMoveDialog(ids) {
-            const folders = await api("/api/files?" + new URLSearchParams({ sort: "name", dir: "asc" })).catch(() => ({ items: [] }));
-            let folderList = '<select id="moveDestination" style="width:100%;height:42px;background:#0e1117;border:1px solid #2a303c;color:#fff;border-radius:7px;padding:0 10px"><option value="">🏠 Racine</option>';
-            folders.items.filter(x => x.type === "folder").forEach(x => folderList += '<option value="' + x.id + '">' + x.name + "</option>");
-            folderList += "</select>";
-            modal("Déplacer les éléments", '<p style="color:#9da5b5">Choisissez le dossier de destination.</p>' + folderList, [{ text: "Annuler", fn: closeModal }, { text: "Déplacer", class: "btn", fn: async () => { try { await moveIds(ids, $("moveDestination").value || null); closeModal(); load() } catch (e) { alert(e.message) } } }])
+        function pump() { while (Q.running < 3) { const j = Q.jobs.find(j => j.state === 'wait'); if (!j) break; start(j) } }
+        function start(j) {
+            j.state = 'run'; Q.running++; const xhr = j.xhr = new XMLHttpRequest(), fd = new FormData();
+            fd.append('file', j.file); if (j.parent) fd.append('parent', j.parent);
+            xhr.open('POST', '/api/upload');
+            xhr.upload.onprogress = e => { if (!e.lengthComputable) return; $('.bar i', j.el).style.width = e.loaded / e.total * 100 + '%'; $('.meta', j.el).textContent = `${fmt(e.loaded)} / ${fmt(e.total)} · ${Math.round(e.loaded / e.total * 100)} %` };
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) return finish(j, 'done', fmt(j.file.size) + ' · envoyé');
+                if (xhr.status === 401) showLogin();
+                let d = {}; try { d = JSON.parse(xhr.responseText) } catch { } finish(j, 'fail', ERR[d.error] || d.error || 'Échec de l’envoi');
+            };
+            xhr.onerror = () => finish(j, 'fail', 'Erreur réseau'); xhr.onabort = () => finish(j, 'fail', 'Annulé');
+            xhr.send(fd);
         }
-
-        async function showTrash() {
-            trashMode = true; sharesMode = false; selected.clear(); pathStack = []; current = null; const d = await api("/api/trash"); items = d.items; $("breadcrumb").innerHTML = '<button class="crumb current">🗑️ Corbeille</button>'; $("items").innerHTML = ""; $("items").className = "file-grid"; items.forEach(renderTrashItem); updateStatus(); updateActions()
-        }
-
-        function renderTrashItem(x) {
-            const el = document.createElement("div"); el.className = "file" + (selected.has(x.id) ? " selected" : ""); el.innerHTML = '<div class="file-icon">' + icon(x) + '</div><div class="file-name"></div><div class="file-meta">Supprimé ' + fmtDate(x.trashedAt) + '</div><div class="file-actions"><button class="mini">↩</button><button class="mini">✕</button></div>'; el.querySelector(".file-name").textContent = x.name; el.querySelector(".file-actions").children[0].onclick = () => restore([x.id]); el.querySelector(".file-actions").children[1].onclick = () => deleteTrash([x.id]); el.onclick = e => { if (e.target.tagName === "BUTTON") return; selected.has(x.id) ? selected.delete(x.id) : (selected.clear(), selected.add(x.id)); renderItems(); updateActions() }; $("items").appendChild(el)
-        }
-
-        async function restore(ids) { try { await api("/api/trash/restore", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) }); showTrash() } catch (e) { alert(e.message) } }
-        async function deleteTrash(ids) { if (!confirm("Supprimer définitivement ?")) return; try { await api("/api/trash", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) }); showTrash() } catch (e) { alert(e.message) } }
-
-        async function showShares() {
-            sharesMode = true; trashMode = false; selected.clear(); const d = await api("/api/shares"); $("breadcrumb").innerHTML = '<button class="crumb current">🔗 Partagés</button>'; $("items").innerHTML = ""; $("items").className = "file-grid";
-            if (!d.shares.length) { $("items").innerHTML = '<div class="empty"><div><div class="empty-icon">🔗</div><div>Aucun lien partagé</div></div></div>'; return }
-            d.shares.forEach(s => { if (!s.file) return; const el = document.createElement("div"); el.className = "file"; el.innerHTML = '<div class="file-icon">🔗</div><div class="file-name"></div><div class="file-meta">Expire ' + fmtDate(s.expiresAt) + '</div><div class="file-actions"><button class="mini">📋</button><button class="mini">✕</button></div>'; el.querySelector(".file-name").textContent = s.file.name; el.querySelector(".file-actions").children[0].onclick = async () => { await navigator.clipboard?.writeText(location.origin + s.url); toast("Lien copié") }; el.querySelector(".file-actions").children[1].onclick = async () => { await api("/api/shares/" + s.id, { method: "DELETE" }); showShares() }; $("items").appendChild(el) })
+        let reloadT;
+        function finish(j, state, msg) {
+            if (j.state === 'run') Q.running--; j.state = state; j.el.classList.add(state);
+            $('.meta', j.el).textContent = msg; $('.bar i', j.el).style.width = '100%';
+            $('button', j.el).remove(); uTitle(); pump();
+            clearTimeout(reloadT); reloadT = setTimeout(() => { if (S.view !== 'trash' && S.view !== 'shared') load(); else api('/api/storage').then(s => { S.storage = s; renderStorage() }) }, 350);
+            if (!Q.running && !Q.jobs.some(x => x.state === 'wait') && Q.jobs.every(x => x.state === 'done')) setTimeout(() => { if (!Q.running) { $('#uploads').classList.add('hidden'); $('#uList').innerHTML = ''; Q.jobs = [] } }, 3500);
         }
 
-        function uploadFile(file) {
-            if (!file) return;
-            const card = document.createElement("div"); card.className = "upload-card"; card.innerHTML = '<div class="upload-title"><span></span><span>0%</span></div><div class="upload-progress"><div></div></div><div class="upload-info"><span>Préparation...</span><span></span></div>'; $("uploads").appendChild(card); card.querySelector(".upload-title span").textContent = file.name;
-            const xhr = new XMLHttpRequest(); const fd = new FormData(); fd.append("file", file); if (current) fd.append("parent", current);
-            xhr.open("POST", "/api/upload"); xhr.upload.onprogress = e => { if (!e.lengthComputable) return; const p = e.loaded / e.total * 100; card.querySelector(".upload-progress div").style.width = p + "%"; card.querySelector(".upload-title span:last-child").textContent = Math.round(p) + "%"; card.querySelector(".upload-info span").textContent = fmt(e.loaded) + " / " + fmt(e.total) };
-            xhr.onload = () => { if (xhr.status >= 200 && xhr.status < 300) { card.querySelector(".upload-info span").textContent = "Terminé"; setTimeout(() => card.remove(), 1200); load() } else { let d = {}; try { d = JSON.parse(xhr.responseText) } catch { } card.querySelector(".upload-info span").textContent = d.error || "Échec"; card.querySelector(".upload-progress div").style.background = "var(--danger)" } };
-            xhr.onerror = () => { card.querySelector(".upload-info span").textContent = "Erreur réseau"; card.querySelector(".upload-progress div").style.background = "var(--danger)" };
-            xhr.send(fd); $("upload").value = ""
-        }
-
-        function toast(message) { const t = document.createElement("div"); t.textContent = message; t.style.cssText = "position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#202631;border:1px solid #363d4a;color:white;padding:10px 15px;border-radius:8px;z-index:2000;box-shadow:0 8px 30px #0008;font-size:13px"; document.body.appendChild(t); setTimeout(() => t.remove(), 1800) }
-
-        $("fileArea").addEventListener("dragover", e => { e.preventDefault(); $("fileArea").classList.add("drag-active") });
-        $("fileArea").addEventListener("dragleave", e => { if (e.target === $("fileArea")) $("fileArea").classList.remove("drag-active") });
-        $("fileArea").addEventListener("drop", e => { e.preventDefault(); $("fileArea").classList.remove("drag-active"); const files = [...e.dataTransfer.files]; files.forEach(uploadFile) });
-        document.addEventListener("keydown", e => {
-            if (e.key === "Escape") { closeModal(); closeContext(); selected.clear(); renderItems(); updateActions() }
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c" && selected.size) { e.preventDefault(); copySelected() }
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v" && clipboard.length) { e.preventDefault(); pasteItems() }
-            if (e.key === "Delete" && selected.size && !trashMode) { e.preventDefault(); trashSelected() }
-            if (e.key === "F2" && selected.size === 1) { const x = items.find(i => i.id === [...selected][0]); if (x) rename(x) }
+        /* ============ événements ============ */
+        const items = $('#items');
+        items.addEventListener('click', e => {
+            const act = e.target.closest('[data-act]')?.dataset.act;
+            const sr = e.target.closest('.share-row');
+            if (sr) {
+                const s = S.shares.find(v => v.id === sr.dataset.sid); if (!s || !act) return;
+                const url = location.origin + s.url;
+                if (act === 'copy') return run(async () => toast(await copyText(url) ? 'Lien copié' : 'Copie impossible', 'ok'));
+                if (act === 'open') return void window.open(url, '_blank', 'noopener');
+                if (act === 'extend') return run(async () => { const days = await askDays({ title: 'Prolonger le lien', text: 'La nouvelle durée démarre à partir d’aujourd’hui.', ok: 'Prolonger', def: 30 }); if (!days) return; await api('/api/shares/' + s.id, J('PATCH', { days })); refresh('Lien prolongé') });
+                if (act === 'revoke') return run(async () => { if (!await askConfirm({ title: 'Révoquer ce lien ?', text: 'Le lien cessera immédiatement de fonctionner.', ok: 'Révoquer', danger: true })) return; await api('/api/shares/' + s.id, { method: 'DELETE' }); refresh('Lien révoqué') });
+                return;
+            }
+            if (act === 'upload') return $('#fileInput').click();
+            if (act === 'newfolder') return run(newFolder);
+            const el = e.target.closest('.item'); if (!el) return;
+            const x = byId(el.dataset.id); if (!x) return;
+            if (act === 'star') return run(() => toggleStar([x]));
+            if (act === 'more') return itemMenu(e, x);
+            if (act === 'restore') return run(() => restore([x.id]));
+            if (act === 'purge') return run(() => purge([x.id]));
+            if (act === 'check' || (COARSE && S.sel.size)) { S.sel.has(x.id) ? S.sel.delete(x.id) : S.sel.add(x.id); S.anchor = x.id; return syncSel() }
+            if (COARSE && S.view !== 'trash') return preview(x);
+            const ids = S.items.map(i => i.id);
+            if (e.shiftKey && S.anchor && ids.includes(S.anchor)) { const a = ids.indexOf(S.anchor), b = ids.indexOf(x.id); S.sel = new Set(ids.slice(Math.min(a, b), Math.max(a, b) + 1)) }
+            else if (e.ctrlKey || e.metaKey) { S.sel.has(x.id) ? S.sel.delete(x.id) : S.sel.add(x.id); S.anchor = x.id }
+            else { S.sel = new Set([x.id]); S.anchor = x.id }
+            syncSel();
         });
+        items.addEventListener('dblclick', e => { const el = e.target.closest('.item'); if (!el || e.target.closest('[data-act]')) return; const x = byId(el.dataset.id); if (x) preview(x) });
+        items.addEventListener('contextmenu', e => { const el = e.target.closest('.item'); if (el) { e.preventDefault(); const x = byId(el.dataset.id); if (x) itemMenu(e, x) } });
+        $('#area').addEventListener('contextmenu', e => { if (e.target.closest('.item,.share-row') || S.view !== 'files') return; e.preventDefault(); bgMenu(e) });
+        $('#area').addEventListener('click', e => { if (!e.target.closest('.item,.share-row,button,.lh')) { S.sel.clear(); syncSel() } });
 
-        check();
+        $('#bulk').addEventListener('click', e => {
+            const act = e.target.closest('[data-act]')?.dataset.act; if (!act) return; const xs = selItems(), ids = targetIds(xs);
+            run(async () => {
+                if (act === 'clear') { S.sel.clear(); syncSel() }
+                else if (act === 'download') download(xs); else if (act === 'share') await share(xs[0]);
+                else if (act === 'star') await toggleStar(xs); else if (act === 'move') moveDialog(ids);
+                else if (act === 'copy') setClip('copy'); else if (act === 'trash') await trashItems(xs);
+                else if (act === 'restore') await restore(ids); else if (act === 'purge') await purge(ids);
+            });
+        });
+        $('#nav').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b) go(b.dataset.view) });
+        $('#crumbs').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go('files', b.dataset.go || null) });
+        $('#layoutSeg').addEventListener('click', e => { const b = e.target.closest('[data-layout]'); if (!b) return; S.layout = b.dataset.layout; ls.set('ce.layout', S.layout); renderHead(); renderItems(); syncSel() });
+        $('#sort').addEventListener('change', e => { [S.sort, S.dir] = e.target.value.split('-'); ls.set('ce.sort', S.sort); ls.set('ce.dir', S.dir); load() });
+        $('#emptyTrash').addEventListener('click', () => run(emptyTrash));
+        $('#newBtn').addEventListener('click', e => { const r = e.currentTarget.getBoundingClientRect(); newMenu(r.left, r.bottom + 8) });
+        $('#fab').addEventListener('click', e => { const r = e.currentTarget.getBoundingClientRect(); newMenu(r.left - 150, r.top - 150) });
+        $('#refreshBtn').addEventListener('click', () => { load(); toast('Actualisé', 'ok', { ms: 1200 }) });
+        $('#themeBtn').addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+        $('#logoutBtn').addEventListener('click', logout);
+        $('#menuBtn').addEventListener('click', () => document.body.classList.add('nav-open'));
+        $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
+        $('#fileInput').addEventListener('change', e => { enqueue(e.target.files, uploadTarget()); e.target.value = '' });
+        $('#uToggle').addEventListener('click', () => $('#uploads').classList.toggle('min'));
+        $('#uClose').addEventListener('click', () => { Q.jobs.filter(j => j.state === 'run').forEach(j => j.xhr.abort()); Q.jobs.filter(j => j.state === 'wait').forEach(j => finish(j, 'fail', 'Annulé')); $('#uploads').classList.add('hidden'); $('#uList').innerHTML = ''; Q.jobs = [] });
+        $('#lbClose').addEventListener('click', closeLB); $('#lbPrev').addEventListener('click', () => navLB(-1)); $('#lbNext').addEventListener('click', () => navLB(1));
+        $('#lbDl').addEventListener('click', () => S.lb && download([S.lb.list[S.lb.i]]));
+        $('#lbShare').addEventListener('click', () => { if (!S.lb) return; const x = S.lb.list[S.lb.i]; closeLB(); run(() => share(x)) });
+        $('#pwToggle').addEventListener('click', () => { const p = $('#password'), show = p.type === 'password'; p.type = show ? 'text' : 'password'; $('#pwToggle').innerHTML = I(show ? 'eyeOff' : 'eye') });
+
+        let searchT;
+        $('#search').addEventListener('input', e => {
+            S.search = e.target.value.trim(); $('#searchClear').classList.toggle('hidden', !S.search); clearTimeout(searchT);
+            searchT = setTimeout(() => { if (S.search && S.view !== 'files') { S.view = 'files'; S.current = null; history.replaceState(null, '', '#files') } S.sel.clear(); load(); renderHead() }, 220);
+        });
+        $('#searchClear').addEventListener('click', () => { $('#search').value = ''; S.search = ''; $('#searchClear').classList.add('hidden'); load(); renderHead(); $('#search').focus() });
+
+        /* ---- glisser-déposer ---- */
+        const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+        const dropEl = e => e.target.closest?.('.item.folder,[data-drop]');
+        const dropParent = el => el.dataset.drop !== undefined ? (el.dataset.drop === 'root' ? null : el.dataset.drop) : el.dataset.id;
+        items.addEventListener('dragstart', e => {
+            const el = e.target.closest('.item'); if (!el || S.view === 'trash') return e.preventDefault();
+            if (!S.sel.has(el.dataset.id)) { S.sel = new Set([el.dataset.id]); syncSel() }
+            S.dragIds = [...S.sel]; e.dataTransfer.setData('application/x-ce', '1'); e.dataTransfer.effectAllowed = 'move'; el.classList.add('dragging');
+        });
+        items.addEventListener('dragend', () => { S.dragIds = []; $$('.dragging,.drop-on').forEach(x => x.classList.remove('dragging', 'drop-on')) });
+        let hot;
+        document.addEventListener('dragover', e => {
+            const el = dropEl(e), internal = S.dragIds.length > 0, ext = hasFiles(e);
+            if (hot && hot !== el) { hot.classList.remove('drop-on'); hot = null }
+            if (!el || !(internal || ext) || S.dragIds.includes(el.dataset.id)) return;
+            e.preventDefault(); e.dataTransfer.dropEffect = internal ? 'move' : 'copy'; el.classList.add('drop-on'); hot = el;
+        });
+        document.addEventListener('drop', e => {
+            const el = dropEl(e); $$('.drop-on').forEach(x => x.classList.remove('drop-on'));
+            if (S.dragIds.length) { if (!el || S.dragIds.includes(el.dataset.id)) return; e.preventDefault(); const ids = S.dragIds; S.dragIds = []; return run(() => moveIds(ids, dropParent(el))) }
+            if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; $('#dropzone').classList.remove('show');
+            const files = []; let dirs = 0;
+            for (const it of e.dataTransfer.items) { const en = it.webkitGetAsEntry?.(); if (en?.isDirectory) { dirs++; continue } const f = it.getAsFile(); if (f) files.push(f) }
+            if (dirs) toast('Les dossiers ne sont pas encore pris en charge — envoyez leurs fichiers ou compressez-les en .zip.', 'info', { ms: 5000 });
+            enqueue(files, el ? dropParent(el) : uploadTarget());
+        });
+        let dragDepth = 0;
+        window.addEventListener('dragenter', e => { if (hasFiles(e)) { dragDepth++; $('#dropzone').classList.add('show') } });
+        window.addEventListener('dragleave', e => { if (hasFiles(e)) { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('#dropzone').classList.remove('show') } });
+        window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault() });
+        window.addEventListener('drop', e => { dragDepth = 0; $('#dropzone').classList.remove('show'); if (hasFiles(e)) e.preventDefault() });
+
+        /* ---- presse-papiers & raccourcis ---- */
+        document.addEventListener('paste', e => {
+            if (/INPUT|TEXTAREA/.test(e.target.tagName) || S.modal || $('#app').classList.contains('hidden')) return;
+            const files = [...(e.clipboardData?.files || [])];
+            if (files.length) { e.preventDefault(); enqueue(files, uploadTarget()) } else if (S.clip.ids.length) run(paste);
+        });
+        function moveSel(key) {
+            if (!S.items.length) return; const ids = S.items.map(i => i.id); let i = S.anchor ? ids.indexOf(S.anchor) : -1;
+            const cols = S.layout === 'grid' ? getComputedStyle($('#items')).gridTemplateColumns.split(' ').length : 1;
+            const d = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[key]; if (S.layout === 'list' && Math.abs(d) === 1) return;
+            i = i < 0 ? 0 : Math.max(0, Math.min(ids.length - 1, i + d)); S.anchor = ids[i]; S.sel = new Set([ids[i]]); syncSel();
+            $(`.item[data-id="${ids[i]}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        document.addEventListener('keydown', e => {
+            if ($('#app').classList.contains('hidden')) return;
+            const typing = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName), mod = e.ctrlKey || e.metaKey, key = e.key.toLowerCase();
+            if (S.lb) { if (e.key === 'Escape') closeLB(); else if (e.key === 'ArrowRight') navLB(1); else if (e.key === 'ArrowLeft') navLB(-1); return }
+            if (S.modal) { if (e.key === 'Escape') S.modal.close(null); return }
+            if ((mod && key === 'k') || (e.key === '/' && !typing)) { e.preventDefault(); $('#search').focus(); $('#search').select(); return }
+            if (typing) { if (e.key === 'Escape') e.target.blur(); return }
+            if (mod && key === 'a') { e.preventDefault(); S.sel = new Set(S.items.map(i => i.id)); return syncSel() }
+            if (mod && key === 'c' && S.sel.size) { e.preventDefault(); return setClip('copy') }
+            if (mod && key === 'x' && S.sel.size && S.view === 'files') { e.preventDefault(); return setClip('cut') }
+            if (e.key === 'Escape') { if (S.sel.size) { S.sel.clear(); syncSel() } else if (S.search) $('#searchClear').click(); closeMenu(); return }
+            if (e.key === 'Delete' && S.sel.size) { e.preventDefault(); const xs = selItems(); return run(() => S.view === 'trash' ? purge(targetIds(xs)) : trashItems(xs)) }
+            if (e.key === 'F2' && S.sel.size === 1) { e.preventDefault(); return run(() => rename(selItems()[0])) }
+            if (e.key === 'Enter' && S.sel.size === 1) return preview(selItems()[0]);
+            if (e.key === 'Backspace' && S.view === 'files' && S.current && !S.search) { e.preventDefault(); return go('files', S.fmap.get(S.current)?.parent || null) }
+            if (e.key.startsWith('Arrow') && S.view !== 'shared') { e.preventDefault(); moveSel(e.key) }
+        });
+        window.addEventListener('hashchange', route);
+
+        /* ============ init ============ */
+        $('#loginLogo').innerHTML = I('cloud'); $('#brandLogo').innerHTML = I('cloud');
+        $('#newBtn').innerHTML = I('plus') + 'Nouveau'; $('#fab').innerHTML = I('plus');
+        $('#searchIcon').innerHTML = I('search'); $('#searchClear').innerHTML = I('x');
+        $('#refreshBtn').innerHTML = I('refresh'); $('#logoutBtn').innerHTML = I('logout'); $('#menuBtn').innerHTML = I('menu');
+        $('#pwToggle').innerHTML = I('eye'); $('#dropIcon').innerHTML = I('upload');
+        $('#uToggle').innerHTML = I('chevD'); $('#uClose').innerHTML = I('x');
+        $('#lbDl').innerHTML = I('download'); $('#lbShare').innerHTML = I('link'); $('#lbClose').innerHTML = I('x'); $('#lbPrev').innerHTML = I('chevL'); $('#lbNext').innerHTML = I('chevR');
+        $('[data-layout=grid]').innerHTML = I('grid'); $('[data-layout=list]').innerHTML = I('list');
+        setTheme(document.documentElement.dataset.theme || 'dark');
+        boot();
     </script>
 </body>
 

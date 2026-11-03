@@ -6,9 +6,10 @@ const path = require('path');
 const fs = require('fs/promises');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
+const archiver = require('archiver');
 
 const { initData, save, getState } = require('./db');
-const { initStorage, safeStorageName, getStoragePath, deleteStoredFile } = require('./storage');
+const { initStorage, safeStorageName, getStoragePath, deleteStoredFile, root: storageRoot } = require('./storage');
 const { createSession, destroySession, requireAuth, login } = require('./auth');
 
 const app = express();
@@ -17,21 +18,64 @@ const HOST = process.env.HOST || '0.0.0.0';
 const quota = Number(process.env.STORAGE_QUOTA || 107374182400);
 const maxUpload = Number(process.env.MAX_UPLOAD_SIZE || 5368709120);
 const shareTtl = Number(process.env.SHARE_TTL || 604800000);
+const trashTtl = Number(process.env.TRASH_TTL ?? 2592000000);
 
 app.disable('x-powered-by');
 if (process.env.TRUST_PROXY === "true") app.set('trust proxy', 1);
 
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
-app.use(express.static(path.resolve('public'), { index: 'index.html' }));
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    next();
+});
+app.use(express.static(path.join(__dirname, '..', 'public'), { index: 'index.html' }));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false });
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: maxUpload, files: 1 } });
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (_req, _file, cb) => cb(null, storageRoot),
+        filename: (_req, _file, cb) => cb(null, safeStorageName())
+    }),
+    limits: { fileSize: maxUpload, files: 1 }
+});
 
 const now = () => Date.now();
 const id = () => crypto.randomBytes(16).toString('hex');
 const state = () => getState();
 const find = id => state().items.find(x => x.id === id);
+
+const TEXT_EXT = new Set(['txt', 'md', 'markdown', 'json', 'jsonc', 'js', 'mjs', 'cjs', 'ts', 'jsx', 'tsx', 'css', 'scss', 'less', 'html', 'htm', 'xml', 'yml', 'yaml', 'toml', 'ini', 'env', 'log', 'csv', 'tsv', 'sql', 'sh', 'bash', 'zsh', 'bat', 'ps1', 'py', 'rb', 'php', 'java', 'c', 'h', 'cpp', 'hpp', 'cs', 'go', 'rs', 'kt', 'swift', 'lua', 'vue', 'svelte', 'ejs', 'conf', 'cfg', 'gitignore', 'dockerfile', 'properties']);
+const DOC_EXT = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'rtf', 'epub']);
+const ARCHIVE_EXT = new Set(['zip', 'rar', '7z', 'tar', 'gz', 'tgz', 'bz2', 'xz']);
+const extOf = name => path.extname(String(name)).slice(1).toLowerCase();
+const MAX_TEXT = 2 * 1048576;
+
+function isEditable(item) {
+    if (item.type !== 'file' || Number(item.size || 0) > MAX_TEXT) return false;
+    const mime = item.mime || '';
+    return mime.startsWith('text/') || /(json|xml|javascript|yaml|x-sh)/.test(mime) || TEXT_EXT.has(extOf(item.name));
+}
+
+function category(item) {
+    const mime = item.mime || '', ext = extOf(item.name);
+    if (mime.startsWith('image/')) return 'images';
+    if (mime.startsWith('video/')) return 'videos';
+    if (mime.startsWith('audio/')) return 'audio';
+    if (/zip|rar|7z|tar|gzip|compressed/.test(mime) || ARCHIVE_EXT.has(ext)) return 'archives';
+    if (mime === 'application/pdf' || mime.startsWith('text/') || DOC_EXT.has(ext) || TEXT_EXT.has(ext) || /word|sheet|presentation|opendocument|json|xml/.test(mime)) return 'documents';
+    return 'other';
+}
+
+// multer decodes multipart filenames as latin1: repair UTF-8 names (accents, emojis)
+function fixFilename(name) {
+    name = String(name ?? '');
+    if (/[^\x00-\xff]/.test(name)) return name;
+    const decoded = Buffer.from(name, 'latin1').toString('utf8');
+    return decoded.includes('\ufffd') ? name : decoded;
+}
 
 function cleanName(name) {
     return String(name ?? '').trim().replace(/[\/\\\0]/g, '').replace(/^\.+$/, '');
@@ -42,7 +86,8 @@ function children(parent) {
 }
 
 function used() {
-    return state().items.filter(x => x.type === 'file' && x.trashed !== true).reduce((sum, x) => sum + Number(x.size || 0), 0);
+    // trashed files still occupy the disk until they are purged
+    return state().items.filter(x => x.type === 'file').reduce((sum, x) => sum + Number(x.size || 0), 0);
 }
 
 function publicItem(x) {
@@ -56,7 +101,9 @@ function publicItem(x) {
         createdAt: x.createdAt,
         updatedAt: x.updatedAt,
         trashed: x.trashed === true,
-        trashedAt: x.trashedAt || null
+        trashedAt: x.trashedAt || null,
+        starred: x.starred === true,
+        editable: isEditable(x)
     };
 }
 
@@ -83,7 +130,10 @@ function ensureState() {
     const s = state();
     if (!Array.isArray(s.items)) s.items = [];
     if (!Array.isArray(s.shares)) s.shares = [];
-    for (const item of s.items) if (item.trashed === undefined) item.trashed = false;
+    for (const item of s.items) {
+        if (item.trashed === undefined) item.trashed = false;
+        if (item.starred === undefined) item.starred = false;
+    }
     return s;
 }
 
@@ -92,26 +142,18 @@ function sameName(name, parent, exclude) {
 }
 
 function sortItems(items, sort, direction) {
-    const multiplier = direction === 'desc' ? -1 : 1;
+    const m = direction === 'desc' ? -1 : 1;
+    const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
 
     return items.sort((a, b) => {
-        let av, bv;
+        if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
 
-        if (sort === 'size') {
-            av = a.size || 0;
-            bv = b.size || 0;
-        } else if (sort === 'date') {
-            av = a.updatedAt || 0;
-            bv = b.updatedAt || 0;
-        } else {
-            av = a.name.toLocaleLowerCase();
-            bv = b.name.toLocaleLowerCase();
-        }
+        let r;
+        if (sort === 'size') r = (a.size || 0) - (b.size || 0);
+        else if (sort === 'date') r = (a.updatedAt || 0) - (b.updatedAt || 0);
+        else r = byName(a, b) * m;
 
-        if (av < bv) return -multiplier;
-        if (av > bv) return multiplier;
-
-        return (a.type === 'folder' ? -1 : 1) - (b.type === 'folder' ? -1 : 1);
+        return r ? (sort === 'name' ? r : r * m) : byName(a, b);
     });
 }
 
@@ -129,6 +171,20 @@ async function uniqueName(base, parent) {
 
     while (sameName(name, parent)) name = `${stem} (${number++})${ext}`;
     return name;
+}
+
+async function purgeOldTrash() {
+    if (!trashTtl) return;
+    const limit = now() - trashTtl;
+    const old = state().items.filter(x => x.trashed && x.trashedAt && x.trashedAt < limit);
+    if (!old.length) return;
+
+    const ids = new Set(old.map(x => x.id));
+    for (const item of old) if (item.type === 'file') await deleteStoredFile(item.storageName);
+
+    state().items = state().items.filter(x => !ids.has(x.id));
+    state().shares = state().shares.filter(x => !ids.has(x.fileId));
+    await save();
 }
 
 app.get('/api/auth/me', requireAuth, (_req, res) => res.json({ authenticated: true }));
@@ -155,8 +211,29 @@ app.post('/api/auth/logout', requireAuth, (req, res) => {
 });
 
 app.get('/api/storage', requireAuth, (req, res) => {
-    const current = used();
-    res.json({ used: current, quota, free: Math.max(0, quota - current), percent: quota ? Math.min(100, current / quota * 100) : 0 });
+    const files = state().items.filter(x => x.type === 'file');
+    const breakdown = { images: 0, videos: 0, audio: 0, documents: 0, archives: 0, other: 0 };
+    let current = 0, trash = 0, count = 0;
+
+    for (const x of files) {
+        const size = Number(x.size || 0);
+        current += size;
+        if (x.trashed) { trash += size; continue; }
+        count++;
+        breakdown[category(x)] += size;
+    }
+
+    res.json({
+        used: current,
+        quota,
+        free: Math.max(0, quota - current),
+        percent: quota ? Math.min(100, current / quota * 100) : 0,
+        trash,
+        trashTtl,
+        files: count,
+        folders: state().items.filter(x => x.type === 'folder' && !x.trashed).length,
+        breakdown
+    });
 });
 
 app.get('/api/files', requireAuth, (req, res) => {
@@ -179,6 +256,138 @@ app.get('/api/trash', requireAuth, (req, res) => {
     const items = state().items.filter(item => item.trashed === true && (!item.parent || !find(item.parent)?.trashed));
     sortItems(items, 'date', 'desc');
     res.json({ items: items.map(publicItem) });
+});
+
+app.get('/api/tree', requireAuth, (req, res) => {
+    ensureState();
+    res.json({ folders: state().items.filter(x => x.type === 'folder' && !x.trashed).map(x => ({ id: x.id, name: x.name, parent: x.parent || null })) });
+});
+
+app.get('/api/recent', requireAuth, (req, res) => {
+    ensureState();
+    const items = state().items.filter(x => x.type === 'file' && !x.trashed).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 100);
+    res.json({ items: items.map(publicItem) });
+});
+
+app.get('/api/starred', requireAuth, (req, res) => {
+    ensureState();
+    const items = state().items.filter(x => x.starred === true && !x.trashed);
+    sortItems(items, 'name', 'asc');
+    res.json({ items: items.map(publicItem) });
+});
+
+app.post('/api/files/star', requireAuth, async (req, res) => {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const items = ids.map(find);
+    if (!items.length || items.some(item => !item || item.trashed)) return res.status(404).json({ error: 'Item not found' });
+
+    for (const item of items) item.starred = req.body?.starred === true;
+
+    await save();
+    res.json({ items: items.map(publicItem) });
+});
+
+app.get('/api/zip', requireAuth, (req, res) => {
+    ensureState();
+    const roots = String(req.query.ids || '').split(',').filter(Boolean).map(find);
+    if (!roots.length || roots.some(item => !item || item.trashed)) return res.status(404).json({ error: 'Item not found' });
+
+    const archive = archiver('zip', { zlib: { level: 3 } });
+    archive.on('error', err => { console.error(err); res.destroy(err); });
+    res.on('close', () => archive.abort());
+    res.attachment(roots.length === 1 ? `${roots[0].name}.zip` : 'cloud-explorer.zip');
+    archive.pipe(res);
+
+    const taken = new Set();
+    const topName = name => {
+        const ext = path.extname(name), stem = name.slice(0, name.length - ext.length);
+        let n = name, i = 1;
+        while (taken.has(n)) n = `${stem} (${i++})${ext}`;
+        taken.add(n);
+        return n;
+    };
+
+    const add = (item, prefix, nameOverride) => {
+        if (item.trashed) return;
+        const entry = prefix + (nameOverride ?? item.name);
+
+        if (item.type === 'folder') {
+            archive.append(Buffer.alloc(0), { name: entry + '/' });
+            for (const child of children(item.id)) add(child, entry + '/');
+        } else {
+            archive.file(getStoragePath(item.storageName), { name: entry });
+        }
+    };
+
+    for (const item of roots) add(item, '', topName(item.name));
+    archive.finalize();
+});
+
+function editableItem(req) {
+    const item = find(req.params.id);
+    return item && !item.trashed && isEditable(item) ? item : null;
+}
+
+app.get('/api/text/:id', requireAuth, async (req, res) => {
+    const item = editableItem(req);
+    if (!item) return res.status(404).json({ error: 'File not found or not editable' });
+    res.json({ content: await fs.readFile(getStoragePath(item.storageName), 'utf8') });
+});
+
+app.put('/api/text/:id', requireAuth, async (req, res) => {
+    const item = editableItem(req);
+    if (!item) return res.status(404).json({ error: 'File not found or not editable' });
+
+    const content = req.body?.content;
+    if (typeof content !== 'string') return res.status(400).json({ error: 'Invalid content' });
+
+    const bytes = Buffer.byteLength(content, 'utf8');
+    if (bytes > MAX_TEXT) return res.status(413).json({ error: 'File is too large' });
+    if (used() - Number(item.size || 0) + bytes > quota) return res.status(413).json({ error: 'Storage quota exceeded' });
+
+    await fs.writeFile(getStoragePath(item.storageName), content, 'utf8');
+    item.size = bytes;
+    item.updatedAt = now();
+
+    await save();
+    res.json({ item: publicItem(item) });
+});
+
+app.post('/api/text', requireAuth, async (req, res) => {
+    let name = cleanName(req.body?.name);
+    const parent = req.body?.parent || null;
+    const content = typeof req.body?.content === 'string' ? req.body.content : '';
+
+    if (!name || name.length > 255) return res.status(400).json({ error: 'Invalid filename' });
+    if (parent && (!find(parent) || find(parent).type !== 'folder' || find(parent).trashed)) return res.status(404).json({ error: 'Parent folder not found' });
+    if (!path.extname(name)) name += '.txt';
+
+    const bytes = Buffer.byteLength(content, 'utf8');
+    if (bytes > MAX_TEXT) return res.status(413).json({ error: 'File is too large' });
+    if (used() + bytes > quota) return res.status(413).json({ error: 'Storage quota exceeded' });
+
+    name = await uniqueName(name, parent);
+    const storageName = safeStorageName();
+    await fs.writeFile(getStoragePath(storageName), content, 'utf8');
+
+    const mimes = { '.md': 'text/markdown', '.json': 'application/json', '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.csv': 'text/csv' };
+    const item = {
+        id: id(),
+        type: 'file',
+        name,
+        parent,
+        size: bytes,
+        mime: mimes[path.extname(name).toLowerCase()] || 'text/plain',
+        storageName,
+        createdAt: now(),
+        updatedAt: now(),
+        trashed: false,
+        starred: false
+    };
+
+    state().items.push(item);
+    await save();
+    res.status(201).json({ item: publicItem(item) });
 });
 
 app.post('/api/folders', requireAuth, async (req, res) => {
@@ -207,21 +416,25 @@ app.post('/api/folders', requireAuth, async (req, res) => {
 });
 
 app.post('/api/upload', requireAuth, upload.single('file'), async (req, res) => {
-    const parent = req.body?.parent || null;
     if (!req.file) return res.status(400).json({ error: 'No file supplied' });
-    if (parent && (!find(parent) || find(parent).type !== 'folder' || find(parent).trashed)) return res.status(404).json({ error: 'Parent folder not found' });
-    if (used() + req.file.size > quota) return res.status(413).json({ error: 'Storage quota exceeded' });
 
-    const name = cleanName(req.file.originalname);
-    if (!name || name.length > 255) return res.status(400).json({ error: 'Invalid filename' });
-    if (sameName(name, parent)) return res.status(409).json({ error: 'An item with this name already exists' });
+    const storageName = req.file.filename;
+    const reject = async (status, error) => {
+        await deleteStoredFile(storageName);
+        return res.status(status).json({ error });
+    };
 
-    const storageName = safeStorageName();
-    await fs.writeFile(getStoragePath(storageName), req.file.buffer);
+    const parent = req.body?.parent || null;
+    if (parent && (!find(parent) || find(parent).type !== 'folder' || find(parent).trashed)) return reject(404, 'Parent folder not found');
+    if (used() + req.file.size > quota) return reject(413, 'Storage quota exceeded');
+
+    const base = cleanName(fixFilename(req.file.originalname));
+    if (!base || base.length > 255) return reject(400, 'Invalid filename');
+    const name = await uniqueName(base, parent);
 
     const item = {
         id: id(),
-        type: "file",
+        type: 'file',
         name,
         parent,
         size: req.file.size,
@@ -229,7 +442,8 @@ app.post('/api/upload', requireAuth, upload.single('file'), async (req, res) => 
         storageName,
         createdAt: now(),
         updatedAt: now(),
-        trashed: false
+        trashed: false,
+        starred: false
     };
 
     state().items.push(item);
@@ -249,8 +463,10 @@ app.get('/api/preview/:id', requireAuth, (req, res) => {
     const item = find(req.params.id);
     if (!item || item.type !== 'file' || item.trashed) return res.status(404).json({ error: 'File not found' });
 
-    res.setHeader('Content-Type', item.mime || 'application/octet-stream');
+    const mime = item.mime || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
     res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(item.name)}`);
+    if (/html|svg|xml|javascript/.test(mime)) res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'; img-src data:; style-src 'unsafe-inline'");
     res.sendFile(getStoragePath(item.storageName));
 });
 
@@ -266,9 +482,10 @@ app.patch('/api/files/:id', requireAuth, async (req, res) => {
     if (item.type === 'folder' && (parent === item.id || isDescendant(item.id, parent))) return res.status(400).json({ error: 'Cannot move a folder into itself' });
     if (sameName(name, parent, item.id)) return res.status(409).json({ error: 'An item with this name already exists' });
 
+    if (name !== item.name || parent !== item.parent) item.updatedAt = now();
     item.name = name;
     item.parent = parent;
-    item.updatedAt = now();
+    if (req.body?.starred !== undefined) item.starred = req.body.starred === true;
 
     await save();
 
@@ -276,7 +493,7 @@ app.patch('/api/files/:id', requireAuth, async (req, res) => {
 });
 
 app.post('/api/files/move', requireAuth, async (req, res) => {
-    const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const ids = req.body?.all === true ? state().items.filter(x => x.trashed).map(x => x.id) : Array.isArray(req.body?.ids) ? req.body.ids : [];
     const parent = req.body?.parent || null;
 
     if (!ids.length) return res.status(400).json({ error: 'No items selected' });
@@ -420,7 +637,8 @@ app.post('/api/share/:id', requireAuth, async (req, res) => {
         fileId: item.id,
         token,
         createdAt: now(),
-        expiresAt: now() + days * 86400000
+        expiresAt: now() + days * 86400000,
+        downloads: 0
     };
 
     state().shares.push(share);
@@ -447,14 +665,44 @@ app.delete('/api/shares/:id', requireAuth, async (req, res) => {
     res.json({ ok: true });
 });
 
+const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function shell(title, body) {
+    return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escapeHtml(title)}</title><style>
+*{box-sizing:border-box;margin:0}body{min-height:100vh;display:grid;place-items:center;padding:24px;font:15px/1.5 Inter,ui-sans-serif,system-ui,'Segoe UI',sans-serif;color:#eef0fa;background:radial-gradient(900px 500px at 10% -10%,#4f46e5aa,transparent),radial-gradient(800px 500px at 100% 30%,#0ea5e955,transparent),#06070c}
+.card{width:min(460px,100%);padding:34px;border-radius:28px;text-align:center;background:rgba(18,21,32,.78);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(26px);box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.logo{width:64px;height:64px;margin:0 auto 18px;border-radius:20px;display:grid;place-items:center;font-size:30px;background:linear-gradient(135deg,#7c6cff,#35c4f5);box-shadow:0 12px 34px -8px #7c6cff}
+h1{font-size:19px;word-break:break-word}p{color:#8a91aa;margin-top:6px;font-size:13px}.preview{margin:22px 0 4px}.preview img,.preview video{max-width:100%;max-height:300px;border-radius:16px}.preview audio{width:100%}
+a.btn{display:inline-flex;gap:8px;align-items:center;justify-content:center;margin-top:24px;padding:13px 26px;border-radius:14px;color:#fff;text-decoration:none;font-weight:600;background:linear-gradient(135deg,#7c6cff,#35c4f5);box-shadow:0 14px 34px -12px #7c6cff}a.btn:hover{filter:brightness(1.1)}small{display:block;margin-top:22px;color:#5d6480;font-size:12px}
+</style></head><body><div class="card">${body}</div></body></html>`;
+}
+
 app.get('/share/:token', (req, res) => {
     purgeExpiredShares();
 
     const share = state().shares.find(x => x.token === req.params.token);
     const item = share && find(share.fileId);
-    if (!share || !item || item.trashed) return res.status(404).send('Share link not found or expired.');
+    if (!share || !item || item.trashed) return res.status(404).send(shell('Lien introuvable', '<div class="logo">☁</div><h1>Lien introuvable ou expiré</h1><p>Ce lien de partage n\u2019existe plus.</p>'));
 
-    res.download(getStoragePath(item.storageName), item.name);
+    if (req.query.dl !== undefined) {
+        share.downloads = (share.downloads || 0) + 1;
+        save().catch(console.error);
+        return res.download(getStoragePath(item.storageName), item.name);
+    }
+
+    const mime = item.mime || '';
+    const previewable = /^(image|video|audio)\//.test(mime) && !/svg/.test(mime);
+    if (req.query.raw !== undefined && previewable) {
+        res.setHeader('Content-Type', mime);
+        return res.sendFile(getStoragePath(item.storageName));
+    }
+
+    const raw = `/share/${share.token}?raw=1`;
+    const media = !previewable ? '' : mime.startsWith('image/') ? `<img src="${raw}" alt="">` : mime.startsWith('video/') ? `<video src="${raw}" controls></video>` : `<audio src="${raw}" controls></audio>`;
+    const days = Math.max(0, Math.ceil((share.expiresAt - now()) / 86400000));
+    const size = Number(item.size || 0) < 1048576 ? `${(Number(item.size || 0) / 1024).toFixed(1)} Ko` : `${(Number(item.size) / 1048576).toFixed(1)} Mo`;
+
+    res.send(shell(item.name, `<div class="logo">☁</div><h1>${escapeHtml(item.name)}</h1><p>${size} · expire dans ${days} jour${days > 1 ? 's' : ''}</p>${media ? `<div class="preview">${media}</div>` : ''}<a class="btn" href="/share/${share.token}?dl=1">Télécharger</a><small>Partagé avec Cloud Explorer</small>`));
 });
 
 app.use((err, req, res, next) => {
@@ -467,6 +715,9 @@ async function main() {
     await initStorage();
     await initData();
     ensureState();
+    if ((process.env.ADMIN_PASSWORD || 'change-me') === 'change-me') console.warn('⚠  ADMIN_PASSWORD still has its default value — set a real password in .env');
+    await purgeOldTrash();
+    setInterval(() => purgeOldTrash().catch(console.error), 3600000).unref();
     await save();
 
     app.listen(PORT, HOST, () => {

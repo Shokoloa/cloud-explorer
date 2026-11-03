@@ -42,4 +42,4 @@ async function statStoredFile(storageName) {
     return fs.stat(getStoragePath(storageName));
 }
 
-module.exports = { initStorage, safeStorageName, getStoragePath, writeUpload, deleteStoredFile, statStoredFile };
+module.exports = { root, initStorage, safeStorageName, getStoragePath, writeUpload, deleteStoredFile, statStoredFile };
