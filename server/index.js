@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs/promises');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
-const archiver = require('archiver');
+const { ZipArchive } = require('archiver');
 
 const { initData, save, getState } = require('./db');
 const { initStorage, safeStorageName, getStoragePath, deleteStoredFile, root: storageRoot } = require('./storage');
@@ -292,7 +292,7 @@ app.get('/api/zip', requireAuth, (req, res) => {
     const roots = String(req.query.ids || '').split(',').filter(Boolean).map(find);
     if (!roots.length || roots.some(item => !item || item.trashed)) return res.status(404).json({ error: 'Item not found' });
 
-    const archive = archiver('zip', { zlib: { level: 3 } });
+    const archive = new ZipArchive({ zlib: { level: 3 } });
     archive.on('error', err => { console.error(err); res.destroy(err); });
     res.on('close', () => archive.abort());
     res.attachment(roots.length === 1 ? `${roots[0].name}.zip` : 'cloud-explorer.zip');

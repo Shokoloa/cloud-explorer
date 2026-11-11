@@ -1,5 +1,5 @@
 {
-    "name": "local-cloud-explorer",
+    "name": "cloud-explorer",
     "version": "1.0.0",
     "description": "Personal local file explorer powered by Express",
     "main": "server/index.js",
@@ -11,9 +11,9 @@
         "archiver": "^8.0.0",
         "bcryptjs": "^3.0.3",
         "cookie-parser": "^1.4.7",
-        "dotenv": "^18.0.9",
+        "dotenv": "^18.0.10",
         "express": "^5.3.0",
-        "express-rate-limit": "^8.7.3",
+        "express-rate-limit": "^8.7.4",
         "multer": "^2.5.0"
     }
 }
